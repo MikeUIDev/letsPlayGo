@@ -1,0 +1,2 @@
+# letsPlayGo
+Chinese Go game
