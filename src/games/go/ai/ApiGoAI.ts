@@ -49,8 +49,6 @@ export class ApiGoAI implements GoAI {
   async generateMove(
     request: GenerateMoveRequest,
   ): Promise<GenerateMoveResult> {
-    console.log('[ApiGoAI] generateMove called', request);
-
     const controller = new AbortController();
 
     const timeout = setTimeout(() => {
@@ -59,12 +57,6 @@ export class ApiGoAI implements GoAI {
 
     try {
       const requestPayload = serializeMoveRequest(request);
-
-      console.log(
-        '[ApiGoAI] POST',
-        `${this.baseUrl}/ai/move`,
-        requestPayload,
-      );
 
       const response = await this.fetchImpl(
         `${this.baseUrl}/ai/move`,
@@ -81,12 +73,6 @@ export class ApiGoAI implements GoAI {
       const responsePayload =
         (await response.json()) as Record<string, unknown>;
 
-      console.log(
-        '[ApiGoAI] RESPONSE',
-        response.status,
-        responsePayload,
-      );
-
       if (!response.ok) {
         const message =
           typeof responsePayload.message === 'string'
@@ -101,8 +87,6 @@ export class ApiGoAI implements GoAI {
 
       return parseApiMoveResponse(responsePayload);
     } catch (error) {
-      console.error('[ApiGoAI] request failed:', error);
-
       if (error instanceof AiError) {
         throw error;
       }
