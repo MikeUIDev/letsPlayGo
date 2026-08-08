@@ -1,9 +1,11 @@
 import { useEffect, useId, useState } from 'react';
-import type { BoardSize, NewGameSetup, StoneColor } from '../engine/types';
+import type { BoardSize, GameMode, NewGameSetup, StoneColor } from '../engine/types';
 import { DEFAULT_NEW_GAME_SETUP } from '../engine/types';
 import {
+  AI_SUPPORTED_BOARD_SIZES,
   BOARD_SIZE_OPTIONS,
   formatKomiInput,
+  isAiSupportedBoardSize,
   isValidKomi,
   parseKomiInput,
 } from '../utils/gameSetup';
@@ -20,7 +22,7 @@ interface NewGameSetupScreenProps {
   onImportSgf: (content: string) => void;
 }
 
-function FirstPlayerOption({
+function PlayerColorOption({
   color,
   selected,
   name,
@@ -71,11 +73,41 @@ export function NewGameSetupScreen({
   }, [setup.komi]);
 
   function selectSize(size: BoardSize) {
+    if (setup.mode === 'ai' && !isAiSupportedBoardSize(size)) {
+      return;
+    }
     onSetupChange({ ...setup, size });
   }
 
+  function selectMode(mode: GameMode) {
+    if (mode === setup.mode) return;
+
+    if (mode === 'local') {
+      onSetupChange({
+        mode: 'local',
+        size: setup.size,
+        komi: setup.komi,
+        firstPlayer: setup.mode === 'ai' ? setup.humanColor : setup.firstPlayer,
+      });
+      return;
+    }
+
+    onSetupChange({
+      mode: 'ai',
+      size: isAiSupportedBoardSize(setup.size) ? setup.size : AI_SUPPORTED_BOARD_SIZES[0],
+      komi: setup.komi,
+      humanColor: setup.mode === 'local' ? setup.firstPlayer : setup.humanColor,
+    });
+  }
+
   function selectFirstPlayer(firstPlayer: StoneColor) {
+    if (setup.mode !== 'local') return;
     onSetupChange({ ...setup, firstPlayer });
+  }
+
+  function selectHumanColor(humanColor: StoneColor) {
+    if (setup.mode !== 'ai') return;
+    onSetupChange({ ...setup, humanColor });
   }
 
   function handleKomiChange(value: string) {
@@ -100,17 +132,53 @@ export function NewGameSetupScreen({
         </header>
 
         <fieldset className="go-setup__field">
+          <legend className="go-setup__legend">Game Mode</legend>
+          <div className="go-setup__segmented" role="radiogroup" aria-label="Game mode">
+            <label
+              htmlFor="game-mode-local"
+              className={`setup-option setup-option--mode${setup.mode === 'local' ? ' setup-option--selected' : ''}`}
+            >
+              <input
+                id="game-mode-local"
+                type="radio"
+                name="game-mode"
+                className="setup-option__input"
+                checked={setup.mode === 'local'}
+                onChange={() => selectMode('local')}
+              />
+              <span className="setup-option__label">Two Players</span>
+            </label>
+            <label
+              htmlFor="game-mode-ai"
+              className={`setup-option setup-option--mode${setup.mode === 'ai' ? ' setup-option--selected' : ''}`}
+            >
+              <input
+                id="game-mode-ai"
+                type="radio"
+                name="game-mode"
+                className="setup-option__input"
+                checked={setup.mode === 'ai'}
+                onChange={() => selectMode('ai')}
+              />
+              <span className="setup-option__label">Play AI</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset className="go-setup__field">
           <legend className="go-setup__legend">Board Size</legend>
           <div className="go-setup__segmented" role="radiogroup" aria-label="Board size">
             {BOARD_SIZE_OPTIONS.map(({ size, label, descriptor }) => {
               const selected = setup.size === size;
+              const disabled = setup.mode === 'ai' && !isAiSupportedBoardSize(size);
               const id = `board-size-${size}`;
 
               return (
                 <label
                   key={size}
                   htmlFor={id}
-                  className={`setup-option setup-option--size${selected ? ' setup-option--selected' : ''}`}
+                  className={`setup-option setup-option--size${selected ? ' setup-option--selected' : ''}${disabled ? ' setup-option--disabled' : ''}`}
+                  aria-disabled={disabled || undefined}
                 >
                   <input
                     id={id}
@@ -118,6 +186,7 @@ export function NewGameSetupScreen({
                     name="board-size"
                     className="setup-option__input"
                     checked={selected}
+                    disabled={disabled}
                     onChange={() => selectSize(size)}
                   />
                   <span className="setup-option__size-label">{label}</span>
@@ -126,6 +195,9 @@ export function NewGameSetupScreen({
               );
             })}
           </div>
+          {setup.mode === 'ai' && (
+            <p className="go-setup__hint">More AI board sizes coming later.</p>
+          )}
         </fieldset>
 
         <div className="go-setup__field">
@@ -147,23 +219,43 @@ export function NewGameSetupScreen({
           </p>
         </div>
 
-        <fieldset className="go-setup__field">
-          <legend className="go-setup__legend">First Player</legend>
-          <div className="go-setup__segmented go-setup__segmented--players" role="radiogroup" aria-label="First player">
-            <FirstPlayerOption
-              color="black"
-              selected={setup.firstPlayer === 'black'}
-              name="first-player"
-              onSelect={() => selectFirstPlayer('black')}
-            />
-            <FirstPlayerOption
-              color="white"
-              selected={setup.firstPlayer === 'white'}
-              name="first-player"
-              onSelect={() => selectFirstPlayer('white')}
-            />
-          </div>
-        </fieldset>
+        {setup.mode === 'local' ? (
+          <fieldset className="go-setup__field">
+            <legend className="go-setup__legend">First Player</legend>
+            <div className="go-setup__segmented go-setup__segmented--players" role="radiogroup" aria-label="First player">
+              <PlayerColorOption
+                color="black"
+                selected={setup.firstPlayer === 'black'}
+                name="first-player"
+                onSelect={() => selectFirstPlayer('black')}
+              />
+              <PlayerColorOption
+                color="white"
+                selected={setup.firstPlayer === 'white'}
+                name="first-player"
+                onSelect={() => selectFirstPlayer('white')}
+              />
+            </div>
+          </fieldset>
+        ) : (
+          <fieldset className="go-setup__field">
+            <legend className="go-setup__legend">You Play</legend>
+            <div className="go-setup__segmented go-setup__segmented--players" role="radiogroup" aria-label="Your color">
+              <PlayerColorOption
+                color="black"
+                selected={setup.humanColor === 'black'}
+                name="human-color"
+                onSelect={() => selectHumanColor('black')}
+              />
+              <PlayerColorOption
+                color="white"
+                selected={setup.humanColor === 'white'}
+                name="human-color"
+                onSelect={() => selectHumanColor('white')}
+              />
+            </div>
+          </fieldset>
+        )}
 
         <div className={`go-setup__actions${canCancel ? '' : ' go-setup__actions--solo'}`}>
           {canCancel && (

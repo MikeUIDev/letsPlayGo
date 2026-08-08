@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createGoAI } from '../ai/createGoAI';
+import { undoForGameMode } from '../ai/undoAi';
+import type { GoAI, AIStatus } from '../ai/types';
+import { isHumanTurn } from '../engine/gameConfig';
 import { positionKey } from '../engine/board';
 import {
   clearSavedGame,
@@ -25,8 +29,13 @@ import { DEFAULT_NEW_GAME_SETUP } from '../engine/types';
 import { downloadTextFile } from '../utils/download';
 import { formatEngineError } from '../utils/errorMessages';
 import { setupFromConfig } from '../utils/gameSetup';
+import { useGoAI } from './useGoAI';
 
 export type AppView = 'resume' | 'setup' | 'game';
+
+export interface UseGoGameOptions {
+  ai?: GoAI;
+}
 
 export interface UseGoGameResult {
   view: AppView;
@@ -38,10 +47,12 @@ export interface UseGoGameResult {
   error: string | null;
   canUndo: boolean;
   canAct: boolean;
+  canPlay: boolean;
   canConfirmScore: boolean;
   canResume: boolean;
   isScoring: boolean;
   isEnded: boolean;
+  aiStatus: AIStatus;
   scoreBreakdown: ScoreBreakdown | null;
   provisionalResult: ReturnType<typeof calculateProvisionalScore> | null;
   territoryMap: Map<string, TerritoryOwner>;
@@ -60,7 +71,8 @@ export interface UseGoGameResult {
   importSgfFile: (content: string) => void;
 }
 
-export function useGoGame(): UseGoGameResult {
+export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
+  const ai = useMemo(() => options.ai ?? createGoAI(), [options.ai]);
   const initialSaved = useMemo(() => loadSavedGame(), []);
   const [view, setView] = useState<AppView>(initialSaved ? 'resume' : 'setup');
   const [resumeSnapshot, setResumeSnapshot] = useState<GameState | null>(initialSaved);
@@ -85,18 +97,48 @@ export function useGoGame(): UseGoGameResult {
     }
   }, [state, view]);
 
-  const dispatchAction = useCallback((action: GameAction) => {
-    setState((current) => {
-      if (!current) return current;
-      const result = dispatch(current, action);
-      if (result.ok) {
-        setError(null);
-        return result.state;
-      }
-      setError(formatEngineError(result.error));
-      return current;
-    });
+  const applyEngineState = useCallback((nextState: GameState) => {
+    setState(nextState);
   }, []);
+
+  const { status: aiStatus, cancelPending: cancelPendingAi } = useGoAI({
+    ai,
+    state,
+    enabled: view === 'game',
+    onStateChange: applyEngineState,
+    onError: setError,
+  });
+
+  const dispatchAction = useCallback(
+    (action: GameAction) => {
+      if (action.type === 'undo') {
+        cancelPendingAi();
+        setState((current) => {
+          if (!current) return current;
+          const result = undoForGameMode(current);
+          if (result.ok) {
+            setError(null);
+            return result.state;
+          }
+          setError(formatEngineError(result.error));
+          return current;
+        });
+        return;
+      }
+
+      setState((current) => {
+        if (!current) return current;
+        const result = dispatch(current, action);
+        if (result.ok) {
+          setError(null);
+          return result.state;
+        }
+        setError(formatEngineError(result.error));
+        return current;
+      });
+    },
+    [cancelPendingAi],
+  );
 
   const loadGameState = useCallback((nextState: GameState) => {
     const setup = setupFromConfig(nextState.config);
@@ -146,18 +188,22 @@ export function useGoGame(): UseGoGameResult {
     setError(null);
   }, [resumeSnapshot]);
 
-  const startGame = useCallback((setup: NewGameSetup) => {
-    const nextState = createGameFromSetup(setup);
-    setState(nextState);
-    setLastSetup(setup);
-    setSetupDraft(setup);
-    setResumeSnapshot(null);
-    setSavedGameState(null);
-    setView('game');
-    setError(null);
-    clearSavedGame();
-    saveGameToStorage(nextState);
-  }, []);
+  const startGame = useCallback(
+    (setup: NewGameSetup) => {
+      cancelPendingAi();
+      const nextState = createGameFromSetup(setup);
+      setState(nextState);
+      setLastSetup(setup);
+      setSetupDraft(setup);
+      setResumeSnapshot(null);
+      setSavedGameState(null);
+      setView('game');
+      setError(null);
+      clearSavedGame();
+      saveGameToStorage(nextState);
+    },
+    [cancelPendingAi],
+  );
 
   const resumeSavedGame = useCallback(() => {
     if (!resumeSnapshot) return;
@@ -200,18 +246,28 @@ export function useGoGame(): UseGoGameResult {
     [loadGameState],
   );
 
-  const play = useCallback((position: Position) => {
-    setState((current) => {
-      if (!current || current.phase !== 'playing') return current;
-      const result = dispatch(current, { type: 'play', position });
-      if (result.ok) {
-        setError(null);
-        return result.state;
-      }
-      setError(formatEngineError(result.error));
-      return current;
-    });
-  }, []);
+  const humanCanInteract =
+    Boolean(state && state.phase === 'playing' && isHumanTurn(state.config, state.currentPlayer));
+  const canPlay = humanCanInteract && aiStatus !== 'thinking';
+  const canAct = canPlay;
+
+  const play = useCallback(
+    (position: Position) => {
+      if (!canPlay) return;
+      setState((current) => {
+        if (!current || current.phase !== 'playing') return current;
+        if (!isHumanTurn(current.config, current.currentPlayer)) return current;
+        const result = dispatch(current, { type: 'play', position });
+        if (result.ok) {
+          setError(null);
+          return result.state;
+        }
+        setError(formatEngineError(result.error));
+        return current;
+      });
+    },
+    [canPlay],
+  );
 
   const markDead = useCallback((position: Position) => {
     setState((current) => {
@@ -257,11 +313,13 @@ export function useGoGame(): UseGoGameResult {
     moves: state ? getMoveList(state) : [],
     error,
     canUndo: Boolean(state && state.history.length > 0 && state.phase === 'playing'),
-    canAct: state?.phase === 'playing',
+    canAct,
+    canPlay,
     canConfirmScore: state?.phase === 'scoring',
     canResume: state?.phase === 'scoring',
     isScoring: state?.phase === 'scoring',
     isEnded: state?.phase === 'ended',
+    aiStatus,
     scoreBreakdown,
     provisionalResult,
     territoryMap,

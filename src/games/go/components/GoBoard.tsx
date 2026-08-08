@@ -9,6 +9,7 @@ interface GoBoardProps {
   lastMove: Position | null;
   territoryMap: Map<string, TerritoryOwner>;
   deadStoneKeys: Set<string>;
+  humanCanPlay: boolean;
   onPlay: (position: Position) => void;
   onMarkDead: (position: Position) => void;
 }
@@ -54,12 +55,13 @@ export function GoBoard({
   lastMove,
   territoryMap,
   deadStoneKeys,
+  humanCanPlay,
   onPlay,
   onMarkDead,
 }: GoBoardProps) {
   const { board, phase, currentPlayer } = state;
   const { size } = board;
-  const canPlay = phase === 'playing';
+  const canPlay = phase === 'playing' && humanCanPlay;
   const canMarkDead = phase === 'scoring';
   const showTerritory = phase === 'scoring' || phase === 'ended';
   const readOnly = phase === 'ended';

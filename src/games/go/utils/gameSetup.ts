@@ -1,5 +1,13 @@
-import type { NewGameSetup } from '../engine/types';
+import { configToSetup } from '../engine/gameConfig';
+import type { GameConfig, NewGameSetup, NewGameSetupAI, NewGameSetupLocal } from '../engine/types';
 import { DEFAULT_KOMI } from '../engine/types';
+
+export const AI_SUPPORTED_BOARD_SIZES = [9] as const;
+export type AiSupportedBoardSize = (typeof AI_SUPPORTED_BOARD_SIZES)[number];
+
+export function isAiSupportedBoardSize(size: number): size is AiSupportedBoardSize {
+  return (AI_SUPPORTED_BOARD_SIZES as readonly number[]).includes(size);
+}
 
 export const BOARD_SIZE_OPTIONS = [
   { size: 9 as const, label: '9×9', descriptor: 'Quick' },
@@ -22,16 +30,8 @@ export function isValidKomi(komi: number | null): komi is number {
   return komi !== null && Number.isFinite(komi) && komi >= 0;
 }
 
-export function setupFromConfig(config: {
-  size: NewGameSetup['size'];
-  komi: number;
-  firstPlayer?: NewGameSetup['firstPlayer'];
-}): NewGameSetup {
-  return {
-    size: config.size,
-    komi: config.komi,
-    firstPlayer: config.firstPlayer ?? 'black',
-  };
+export function setupFromConfig(config: GameConfig): NewGameSetup {
+  return configToSetup(config);
 }
 
 export function formatKomiInput(komi: number): string {
@@ -39,3 +39,27 @@ export function formatKomiInput(komi: number): string {
 }
 
 export const DEFAULT_KOMI_DISPLAY = formatKomiInput(DEFAULT_KOMI);
+
+export function createLocalSetup(
+  overrides: Partial<Omit<NewGameSetupLocal, 'mode'>> = {},
+): NewGameSetupLocal {
+  return {
+    mode: 'local',
+    size: 9,
+    komi: DEFAULT_KOMI,
+    firstPlayer: 'black',
+    ...overrides,
+  };
+}
+
+export function createAiSetup(
+  overrides: Partial<Omit<NewGameSetupAI, 'mode'>> = {},
+): NewGameSetupAI {
+  return {
+    mode: 'ai',
+    size: 9,
+    komi: DEFAULT_KOMI,
+    humanColor: 'black',
+    ...overrides,
+  };
+}

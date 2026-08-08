@@ -153,6 +153,15 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
+.setup-option--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.setup-option--disabled .setup-option__input {
+  cursor: not-allowed;
+}
+
 .setup-option__input {
   position: absolute;
   opacity: 0;

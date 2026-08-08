@@ -10,6 +10,7 @@ import {
   type StorageAdapter,
 } from '../persistence/saveGame';
 import { SAVED_GAME_VERSION } from '../persistence/types';
+import { createLocalSetup } from '../utils/gameSetup';
 
 function createMemoryStorage(): StorageAdapter & { store: Map<string, string> } {
   const store = new Map<string, string>();
@@ -31,7 +32,7 @@ describe('game persistence', () => {
   });
 
   it('serializes a playing game', () => {
-    const state = createGameFromSetup({ size: 9, komi: 6.5, firstPlayer: 'black' });
+    const state = createGameFromSetup(createLocalSetup({ size: 9, komi: 6.5, firstPlayer: 'black' }));
     const played = dispatch(state, { type: 'play', position: { row: 2, col: 2 } });
     if (!played.ok) throw new Error('play failed');
 
@@ -44,7 +45,7 @@ describe('game persistence', () => {
   });
 
   it('deserializes a saved game', () => {
-    const state = createGameFromSetup({ size: 13, komi: 7.5, firstPlayer: 'white' });
+    const state = createGameFromSetup(createLocalSetup({ size: 13, komi: 7.5, firstPlayer: 'white' }));
     const serialized = serializeGameState(state);
     if (!serialized.ok) throw new Error('serialize failed');
 
@@ -58,7 +59,7 @@ describe('game persistence', () => {
   });
 
   it('preserves board, history, captures, komi, and phase', () => {
-    let state = createGameFromSetup({ size: 9, komi: 5.5, firstPlayer: 'black' });
+    let state = createGameFromSetup(createLocalSetup({ size: 9, komi: 5.5, firstPlayer: 'black' }));
     const played = dispatch(state, { type: 'play', position: { row: 1, col: 1 } });
     if (!played.ok) throw new Error('play failed');
     state = played.state;
@@ -87,7 +88,7 @@ describe('game persistence', () => {
   });
 
   it('rejects unsupported save versions', () => {
-    const state = createGameFromSetup({ size: 9, komi: 6.5, firstPlayer: 'black' });
+    const state = createGameFromSetup(createLocalSetup({ size: 9, komi: 6.5, firstPlayer: 'black' }));
     const serialized = serializeGameState(state);
     if (!serialized.ok) throw new Error('serialize failed');
 
@@ -99,7 +100,7 @@ describe('game persistence', () => {
     const memory = createMemoryStorage();
     setStorageAdapter(memory);
 
-    const state = createGameFromSetup({ size: 19, komi: 6.5, firstPlayer: 'black' });
+    const state = createGameFromSetup(createLocalSetup({ size: 19, komi: 6.5, firstPlayer: 'black' }));
     saveGameToStorage(state);
     expect(loadSavedGame()?.board.size).toBe(19);
 

@@ -3,6 +3,7 @@ import { createGameFromSetup, dispatch } from '../engine/gameState';
 import { positionToSgf, sgfToPosition } from '../sgf/coordinates';
 import { exportSgf } from '../sgf/exportSgf';
 import { importSgf } from '../sgf/importSgf';
+import { createLocalSetup } from '../utils/gameSetup';
 import { parseSgfGame } from '../sgf/parseSgf';
 
 describe('SGF coordinates', () => {
@@ -22,7 +23,7 @@ describe('SGF coordinates', () => {
 describe('SGF export', () => {
   it('exports 9x9, 13x13, and 19x19 games', () => {
     for (const size of [9, 13, 19] as const) {
-      const state = createGameFromSetup({ size, komi: 6.5, firstPlayer: 'black' });
+      const state = createGameFromSetup(createLocalSetup({ size, komi: 6.5, firstPlayer: 'black' }));
       const exported = exportSgf(state);
       expect(exported.content).toContain(`SZ[${size}]`);
       expect(exported.content).toContain('FF[4]');
@@ -31,7 +32,7 @@ describe('SGF export', () => {
   });
 
   it('exports komi, passes, and finished results', () => {
-    let state = createGameFromSetup({ size: 9, komi: 6.5, firstPlayer: 'black' });
+    let state = createGameFromSetup(createLocalSetup({ size: 9, komi: 6.5, firstPlayer: 'black' }));
     const played = dispatch(state, { type: 'play', position: { row: 2, col: 2 } });
     if (!played.ok) throw new Error('play failed');
     state = played.state;
@@ -54,7 +55,7 @@ describe('SGF export', () => {
   });
 
   it('exports resignation results', () => {
-    const state = createGameFromSetup({ size: 9, komi: 6.5, firstPlayer: 'black' });
+    const state = createGameFromSetup(createLocalSetup({ size: 9, komi: 6.5, firstPlayer: 'black' }));
     const resigned = dispatch(state, { type: 'resign' });
     if (!resigned.ok) throw new Error('resign failed');
 
@@ -80,7 +81,7 @@ describe('SGF import', () => {
   });
 
   it('round-trips an exported game', () => {
-    let state = createGameFromSetup({ size: 9, komi: 6.5, firstPlayer: 'black' });
+    let state = createGameFromSetup(createLocalSetup({ size: 9, komi: 6.5, firstPlayer: 'black' }));
     const played = dispatch(state, { type: 'play', position: { row: 4, col: 4 } });
     if (!played.ok) throw new Error('play failed');
     state = played.state;

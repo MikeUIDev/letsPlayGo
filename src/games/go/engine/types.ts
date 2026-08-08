@@ -27,22 +27,44 @@ export interface Board {
 }
 
 /** Static game configuration set at start or restart. */
-export interface GameConfig {
-  size: BoardSize;
-  komi: number;
-  firstPlayer: StoneColor;
-}
+export type GameMode = 'local' | 'ai';
 
-/** User-selected options when starting a new game. */
-export interface NewGameSetup {
+export type LocalGameConfig = {
+  mode: 'local';
   size: BoardSize;
   komi: number;
   firstPlayer: StoneColor;
-}
+};
+
+export type AIGameConfig = {
+  mode: 'ai';
+  size: BoardSize;
+  komi: number;
+  humanColor: StoneColor;
+};
+
+export type GameConfig = LocalGameConfig | AIGameConfig;
+
+export type NewGameSetupLocal = {
+  mode: 'local';
+  size: BoardSize;
+  komi: number;
+  firstPlayer: StoneColor;
+};
+
+export type NewGameSetupAI = {
+  mode: 'ai';
+  size: BoardSize;
+  komi: number;
+  humanColor: StoneColor;
+};
+
+export type NewGameSetup = NewGameSetupLocal | NewGameSetupAI;
 
 export const DEFAULT_KOMI = 6.5;
 
 export const DEFAULT_NEW_GAME_SETUP: NewGameSetup = {
+  mode: 'local',
   size: 9,
   komi: DEFAULT_KOMI,
   firstPlayer: 'black',

@@ -1,3 +1,5 @@
+import type { AIStatus } from '../ai/types';
+import { getAiColor, isAiGameConfig } from '../engine/gameConfig';
 import type { GameState, StoneColor } from '../engine/types';
 import { StoneIcon } from './StoneIcon';
 
@@ -5,6 +7,7 @@ interface PlayerPanelProps {
   state: GameState;
   error: string | null;
   layout?: 'sidebar' | 'active-only' | 'opponent-only';
+  aiStatus?: AIStatus;
 }
 
 function CaptureRow({ color, count }: { color: StoneColor; count: number }) {
@@ -25,15 +28,22 @@ function PlayerCard({
   color,
   state,
   emphasize,
+  aiStatus = 'idle',
 }: {
   color: StoneColor;
   state: GameState;
   emphasize: boolean;
+  aiStatus?: AIStatus;
 }) {
   const isActive = state.phase === 'playing' && state.currentPlayer === color;
   const label = color === 'black' ? 'Black' : 'White';
-  const status =
-    state.phase === 'ended'
+  const aiColor = isAiGameConfig(state.config) ? getAiColor(state.config) : null;
+  const isAiPlayer = aiColor === color;
+  const isAiThinking = isAiPlayer && aiStatus === 'thinking' && state.phase === 'playing';
+
+  const status = isAiThinking
+    ? 'Thinking…'
+    : state.phase === 'ended'
       ? state.result?.winner === color
         ? 'Winner'
         : state.result?.winner === 'draw'
@@ -42,7 +52,9 @@ function PlayerCard({
       : state.phase === 'scoring'
         ? 'Scoring'
         : isActive
-          ? 'Your turn'
+          ? isAiPlayer
+            ? 'Thinking…'
+            : 'Your turn'
           : 'Waiting';
 
   return (
@@ -86,14 +98,14 @@ function GameMeta({ state }: { state: GameState }) {
   );
 }
 
-export function PlayerPanel({ state, error, layout = 'sidebar' }: PlayerPanelProps) {
+export function PlayerPanel({ state, error, layout = 'sidebar', aiStatus = 'idle' }: PlayerPanelProps) {
   const activeColor = state.currentPlayer;
   const opponentColor = activeColor === 'black' ? 'white' : 'black';
 
   if (layout === 'active-only') {
     return (
       <section className="player-panel player-panel--mobile-active" aria-label="Current player">
-        <PlayerCard color={activeColor} state={state} emphasize />
+        <PlayerCard color={activeColor} state={state} emphasize aiStatus={aiStatus} />
         <GameMeta state={state} />
         {error && <p className="game-error" role="alert">{error}</p>}
       </section>
@@ -103,7 +115,7 @@ export function PlayerPanel({ state, error, layout = 'sidebar' }: PlayerPanelPro
   if (layout === 'opponent-only') {
     return (
       <section className="player-panel player-panel--mobile-opponent" aria-label="Opponent">
-        <PlayerCard color={opponentColor} state={state} emphasize={false} />
+        <PlayerCard color={opponentColor} state={state} emphasize={false} aiStatus={aiStatus} />
       </section>
     );
   }
@@ -114,11 +126,13 @@ export function PlayerPanel({ state, error, layout = 'sidebar' }: PlayerPanelPro
         color="white"
         state={state}
         emphasize={state.currentPlayer === 'white' && state.phase === 'playing'}
+        aiStatus={aiStatus}
       />
       <PlayerCard
         color="black"
         state={state}
         emphasize={state.currentPlayer === 'black' && state.phase === 'playing'}
+        aiStatus={aiStatus}
       />
       <GameMeta state={state} />
       {error && <p className="game-error" role="alert">{error}</p>}

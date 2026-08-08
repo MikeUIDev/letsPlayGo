@@ -1,0 +1,21 @@
+{
+  "name": "letsplaygo-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=.env --import tsx --watch src/server.ts",
+    "start": "node --env-file=.env dist/server.js",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "oxlint src tests"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "oxlint": "^1.75.0",
+    "tsx": "^4.21.0",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.10"
+  }
+}

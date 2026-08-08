@@ -1,15 +1,16 @@
-import type { Board, BoardSize, GameState, HistoryEntry, Move, Position } from '../engine/types';
+import type { Board, BoardSize, GameConfig, GameState, HistoryEntry, Move, Position } from '../engine/types';
 import type {
   DeserializeResult,
-  SavedGameV1,
   SerializeResult,
   SerializedBoard,
+  SerializedGameConfig,
+  SerializedGameConfigLegacy,
   SerializedGameState,
   SerializedHistoryEntry,
   SerializedMove,
   SerializedPosition,
 } from './types';
-import { SAVED_GAME_VERSION } from './types';
+import { LEGACY_SAVED_GAME_VERSION, SAVED_GAME_VERSION } from './types';
 
 export const STORAGE_KEY = 'letsplaygo.savedGame';
 
@@ -164,35 +165,50 @@ export function serializeGameState(state: GameState): SerializeResult {
   }
 }
 
-/** Deserialize a saved-game payload into engine state. */
-export function deserializeSavedGame(data: unknown): DeserializeResult {
-  if (!data || typeof data !== 'object') {
-    return { ok: false, error: 'invalid_format' };
+function deserializeConfig(value: unknown): GameConfig | null {
+  if (!value || typeof value !== 'object') return null;
+  const config = value as SerializedGameConfig | SerializedGameConfigLegacy;
+
+  if (!isBoardSize(config.size)) return null;
+  if (typeof config.komi !== 'number' || !Number.isFinite(config.komi)) return null;
+
+  if ('mode' in config && config.mode === 'ai') {
+    if (config.humanColor !== 'black' && config.humanColor !== 'white') return null;
+    return {
+      mode: 'ai',
+      size: config.size,
+      komi: config.komi,
+      humanColor: config.humanColor,
+    };
   }
 
-  const saved = data as SavedGameV1;
-  if (saved.version !== SAVED_GAME_VERSION) {
-    return { ok: false, error: 'unsupported_version' };
+  if ('mode' in config && config.mode === 'local') {
+    if (config.firstPlayer !== 'black' && config.firstPlayer !== 'white') return null;
+    return {
+      mode: 'local',
+      size: config.size,
+      komi: config.komi,
+      firstPlayer: config.firstPlayer,
+    };
   }
 
-  if (!saved.state || typeof saved.state !== 'object') {
-    return { ok: false, error: 'missing_state' };
-  }
+  const legacy = config as SerializedGameConfigLegacy;
+  if (legacy.firstPlayer !== 'black' && legacy.firstPlayer !== 'white') return null;
+  return {
+    mode: 'local',
+    size: legacy.size,
+    komi: legacy.komi,
+    firstPlayer: legacy.firstPlayer,
+  };
+}
 
-  const raw = saved.state;
+function deserializeGameState(raw: SerializedGameState, migratedFromVersion?: number): DeserializeResult {
   const board = deserializeBoard(raw.board);
   if (!board) return { ok: false, error: 'invalid_board' };
 
-  if (!raw.config || !isBoardSize(raw.config.size)) {
-    return { ok: false, error: 'invalid_config' };
-  }
-  if (typeof raw.config.komi !== 'number' || !Number.isFinite(raw.config.komi)) {
-    return { ok: false, error: 'invalid_komi' };
-  }
-  if (raw.config.firstPlayer !== 'black' && raw.config.firstPlayer !== 'white') {
-    return { ok: false, error: 'invalid_first_player' };
-  }
-  if (board.size !== raw.config.size) {
+  const config = deserializeConfig(raw.config);
+  if (!config) return { ok: false, error: 'invalid_config' };
+  if (board.size !== config.size) {
     return { ok: false, error: 'board_config_mismatch' };
   }
 
@@ -229,13 +245,10 @@ export function deserializeSavedGame(data: unknown): DeserializeResult {
 
   return {
     ok: true,
+    migratedFromVersion,
     state: {
       board,
-      config: {
-        size: raw.config.size,
-        komi: raw.config.komi,
-        firstPlayer: raw.config.firstPlayer,
-      },
+      config,
       currentPlayer: raw.currentPlayer,
       phase: raw.phase,
       captures: { black: raw.captures.black, white: raw.captures.white },
@@ -245,6 +258,27 @@ export function deserializeSavedGame(data: unknown): DeserializeResult {
       result: raw.result ?? null,
     },
   };
+}
+
+/** Deserialize a saved-game payload into engine state. */
+export function deserializeSavedGame(data: unknown): DeserializeResult {
+  if (!data || typeof data !== 'object') {
+    return { ok: false, error: 'invalid_format' };
+  }
+
+  const saved = data as { version?: number; state?: unknown; savedAt?: string };
+  if (saved.version !== SAVED_GAME_VERSION && saved.version !== LEGACY_SAVED_GAME_VERSION) {
+    return { ok: false, error: 'unsupported_version' };
+  }
+
+  if (!saved.state || typeof saved.state !== 'object') {
+    return { ok: false, error: 'missing_state' };
+  }
+
+  const migratedFromVersion =
+    saved.version === LEGACY_SAVED_GAME_VERSION ? LEGACY_SAVED_GAME_VERSION : undefined;
+
+  return deserializeGameState(saved.state as SerializedGameState, migratedFromVersion);
 }
 
 export interface StorageAdapter {

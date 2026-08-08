@@ -2,13 +2,13 @@ import { cloneBoard, createEmptyBoard, getStone, positionKey, positionsEqual, wi
 import { applyCaptures } from './captures';
 import { getGroup } from './groups';
 import { isLegalPlay } from './legalMoves';
+import { configToSetup, getStartingPlayer, setupToConfig } from './gameConfig';
 import { defaultKomi, scoreGame } from './scoring';
 import type {
   BoardSize,
   CaptureCounts,
   GameAction,
   GameActionResult,
-  GameConfig,
   GameState,
   HistoryEntry,
   Move,
@@ -25,16 +25,13 @@ export interface CreateGameOptions {
 
 /** Create a fresh game from a complete setup configuration. */
 export function createGameFromSetup(setup: NewGameSetup): GameState {
-  const config: GameConfig = {
-    size: setup.size,
-    komi: setup.komi,
-    firstPlayer: setup.firstPlayer,
-  };
+  const config = setupToConfig(setup);
+  const startingPlayer = getStartingPlayer(setup);
 
   return {
     board: createEmptyBoard(setup.size),
     config,
-    currentPlayer: setup.firstPlayer,
+    currentPlayer: startingPlayer,
     phase: 'playing',
     captures: { black: 0, white: 0 },
     history: [],
@@ -49,6 +46,7 @@ export function createInitialState(
   options: CreateGameOptions = {},
 ): GameState {
   return createGameFromSetup({
+    mode: 'local',
     size,
     komi: options.komi ?? defaultKomi(size),
     firstPlayer: options.firstPlayer ?? 'black',
@@ -271,15 +269,16 @@ export function dispatch(state: GameState, action: GameAction): GameActionResult
       return applyConfirmScore(state);
     case 'resumeGame':
       return applyResumeGame(state);
-    case 'restart':
+    case 'restart': {
+      const setup = configToSetup(state.config);
       return {
         ok: true,
         state: createGameFromSetup({
-          size: action.size ?? state.config.size,
-          komi: state.config.komi,
-          firstPlayer: state.config.firstPlayer,
+          ...setup,
+          size: action.size ?? setup.size,
         }),
       };
+    }
   }
 }
 

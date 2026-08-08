@@ -24,6 +24,8 @@ export function GoGamePage() {
     error,
     canUndo,
     canAct,
+    canPlay,
+    aiStatus,
     canConfirmScore,
     canResume,
     isScoring,
@@ -92,7 +94,7 @@ export function GoGamePage() {
         <div className={`go-shell go-game__grid go-game__grid--${gridPhaseClass}`}>
           {showPlayingSidebar && (
             <section className="go-game__mobile-active">
-              <PlayerPanel state={state} error={error} layout="active-only" />
+              <PlayerPanel state={state} error={error} layout="active-only" aiStatus={aiStatus} />
             </section>
           )}
 
@@ -112,6 +114,7 @@ export function GoGamePage() {
               lastMove={lastMove}
               territoryMap={territoryMap}
               deadStoneKeys={deadStoneKeys}
+              humanCanPlay={canPlay}
               onPlay={play}
               onMarkDead={markDead}
             />
@@ -151,7 +154,7 @@ export function GoGamePage() {
             {isEnded && <GameOverPanel state={state} />}
             {showPlayingSidebar && (
               <>
-                <PlayerPanel state={state} error={error} layout="sidebar" />
+                <PlayerPanel state={state} error={error} layout="sidebar" aiStatus={aiStatus} />
                 <MoveHistory moves={moves} boardSize={state.board.size} />
               </>
             )}
@@ -159,7 +162,7 @@ export function GoGamePage() {
 
           {showPlayingSidebar && (
             <section className="go-game__mobile-opponent">
-              <PlayerPanel state={state} error={null} layout="opponent-only" />
+              <PlayerPanel state={state} error={null} layout="opponent-only" aiStatus={aiStatus} />
             </section>
           )}
 

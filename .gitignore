@@ -17,3 +17,16 @@ dist-ssr/
 *.njsproj
 *.sln
 *.sw?
+
+# Environment
+.env
+.env.*
+!.env.example
+server/.env
+
+# KataGo assets (install locally — do not commit)
+*.bin.gz
+/katago/
+models/
+server/models/
+server/katago/

@@ -16,7 +16,12 @@ export function importSgf(text: string): ImportSgfResult {
   }
 
   const firstPlayer = moves[0]?.color ?? 'black';
-  let state: GameState = createGameFromSetup({ size, komi, firstPlayer });
+  let state: GameState = createGameFromSetup({
+    mode: 'local',
+    size,
+    komi,
+    firstPlayer,
+  });
 
   for (const move of moves) {
     if (move.type === 'play') {
