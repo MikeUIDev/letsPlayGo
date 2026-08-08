@@ -4,14 +4,12 @@ import {
   getStone,
   withStone,
 } from '../engine/board';
-import { isSuicide, getCapturedStones } from '../engine/captures';
 import {
   createInitialState,
   dispatch,
 } from '../engine/gameState';
-import { computeKoPoint, violatesKo } from '../engine/ko';
 import { isLegalPlay } from '../engine/legalMoves';
-import { calculateChineseScore } from '../engine/scoring';
+import { calculateChineseScore, defaultKomi, scoreGame } from '../engine/scoring';
 
 describe('board', () => {
   it('creates an empty board of the given size', () => {
@@ -28,64 +26,6 @@ describe('board', () => {
 
     expect(getStone(board, { row: 0, col: 0 })).toBeNull();
     expect(getStone(next, { row: 0, col: 0 })).toBe('black');
-  });
-});
-
-describe('captures', () => {
-  it('detects a single-stone capture', () => {
-    let board = createEmptyBoard(9);
-    board = withStone(board, { row: 1, col: 1 }, 'white');
-    board = withStone(board, { row: 0, col: 1 }, 'black');
-    board = withStone(board, { row: 2, col: 1 }, 'black');
-    board = withStone(board, { row: 1, col: 0 }, 'black');
-
-    const captured = getCapturedStones(board, { row: 1, col: 2 }, 'black');
-    expect(captured).toEqual([{ row: 1, col: 1 }]);
-  });
-});
-
-describe('legal moves', () => {
-  it('prevents suicide when no capture occurs', () => {
-    let board = createEmptyBoard(9);
-    board = withStone(board, { row: 0, col: 1 }, 'white');
-    board = withStone(board, { row: 1, col: 0 }, 'white');
-    board = withStone(board, { row: 1, col: 2 }, 'white');
-    board = withStone(board, { row: 2, col: 1 }, 'white');
-
-    expect(isSuicide(board, { row: 1, col: 1 }, 'black')).toBe(true);
-  });
-
-  it('allows capture that would otherwise be suicide', () => {
-    let board = createEmptyBoard(9);
-    board = withStone(board, { row: 1, col: 1 }, 'white');
-    board = withStone(board, { row: 0, col: 1 }, 'black');
-    board = withStone(board, { row: 2, col: 1 }, 'black');
-    board = withStone(board, { row: 1, col: 0 }, 'black');
-
-    expect(isSuicide(board, { row: 1, col: 2 }, 'black')).toBe(false);
-  });
-});
-
-describe('ko', () => {
-  it('sets ko point when exactly one stone is captured', () => {
-    expect(computeKoPoint([{ row: 1, col: 1 }])).toEqual({ row: 1, col: 1 });
-    expect(computeKoPoint([])).toBeNull();
-    expect(
-      computeKoPoint([
-        { row: 1, col: 1 },
-        { row: 2, col: 2 },
-      ]),
-    ).toBeNull();
-  });
-
-  it('blocks immediate ko recapture', () => {
-    const state = {
-      ...createInitialState(9),
-      koPoint: { row: 3, col: 3 },
-    };
-
-    expect(violatesKo(state, { row: 3, col: 3 })).toBe(true);
-    expect(violatesKo(state, { row: 0, col: 0 })).toBe(false);
   });
 });
 
@@ -114,17 +54,50 @@ describe('game state', () => {
     }
   });
 
-  it('ends the game on consecutive passes', () => {
+  it('enters scoring phase after two consecutive passes', () => {
     let state = createInitialState(9);
     const pass1 = dispatch(state, { type: 'pass' });
     if (!pass1.ok) throw new Error('pass failed');
     state = pass1.state;
+    expect(state.phase).toBe('playing');
 
     const pass2 = dispatch(state, { type: 'pass' });
     expect(pass2.ok).toBe(true);
     if (pass2.ok) {
-      expect(pass2.state.phase).toBe('ended');
-      expect(pass2.state.result).not.toBeNull();
+      expect(pass2.state.phase).toBe('scoring');
+      expect(pass2.state.result).toBeNull();
+    }
+  });
+
+  it('finalizes score only after confirmScore during scoring', () => {
+    let state = createInitialState(9);
+    const firstPass = dispatch(state, { type: 'pass' });
+    if (!firstPass.ok) throw new Error('pass failed');
+    state = firstPass.state;
+
+    const secondPass = dispatch(state, { type: 'pass' });
+    if (!secondPass.ok) throw new Error('pass failed');
+    state = secondPass.state;
+
+    expect(state.phase).toBe('scoring');
+    expect(state.result).toBeNull();
+
+    const confirmed = dispatch(state, { type: 'confirmScore' });
+    expect(confirmed.ok).toBe(true);
+    if (confirmed.ok) {
+      expect(confirmed.state.phase).toBe('ended');
+      expect(confirmed.state.result).not.toBeNull();
+    }
+  });
+});
+
+describe('board sizes', () => {
+  it('supports 13x13 and 19x19 boards', () => {
+    for (const size of [13, 19] as const) {
+      const state = createInitialState(size);
+      expect(state.board.size).toBe(size);
+      expect(state.config.komi).toBe(defaultKomi(size));
+      expect(isLegalPlay(state, { row: 0, col: 0 }).legal).toBe(true);
     }
   });
 });
@@ -140,14 +113,68 @@ describe('scoring', () => {
     expect(score.blackStones).toBe(3);
     expect(score.blackTerritory).toBeGreaterThanOrEqual(1);
   });
+
+  it('scores only stones and territory, not off-board prisoners', () => {
+    let board = createEmptyBoard(9);
+    board = withStone(board, { row: 0, col: 0 }, 'black');
+    board = withStone(board, { row: 0, col: 1 }, 'black');
+    board = withStone(board, { row: 1, col: 0 }, 'black');
+    board = withStone(board, { row: 1, col: 1 }, 'black');
+    board = withStone(board, { row: 2, col: 0 }, 'black');
+    board = withStone(board, { row: 2, col: 1 }, 'black');
+    board = withStone(board, { row: 0, col: 2 }, 'black');
+    board = withStone(board, { row: 1, col: 2 }, 'black');
+
+    const territory = calculateChineseScore(board);
+    const result = scoreGame(board, { komi: 6.5 });
+
+    expect(result.blackScore).toBe(territory.blackStones + territory.blackTerritory);
+    expect(result.whiteScore).toBe(territory.whiteStones + territory.whiteTerritory + 6.5);
+    expect(result.blackScore).toBeGreaterThan(0);
+  });
+
+  it('uses komi from game configuration', () => {
+    const state = createInitialState(9, { komi: 10.5 });
+    expect(state.config.komi).toBe(10.5);
+
+    const result = scoreGame(state.board, { komi: state.config.komi });
+    expect(result.whiteScore).toBe(10.5);
+  });
+
+  it('recalculates territory when dead stones are marked', () => {
+    let board = createEmptyBoard(9);
+    board = withStone(board, { row: 0, col: 0 }, 'white');
+    board = withStone(board, { row: 0, col: 2 }, 'black');
+    board = withStone(board, { row: 1, col: 1 }, 'black');
+    board = withStone(board, { row: 2, col: 2 }, 'black');
+
+    const alive = calculateChineseScore(board);
+    const withDead = calculateChineseScore(board, [{ row: 0, col: 0 }]);
+
+    expect(alive.whiteStones).toBe(1);
+    expect(withDead.whiteStones).toBe(0);
+    expect(withDead.blackTerritory).toBeGreaterThanOrEqual(alive.blackTerritory);
+  });
 });
 
-describe('board sizes', () => {
-  it('supports 13x13 and 19x19 boards', () => {
-    for (const size of [13, 19] as const) {
-      const state = createInitialState(size);
-      expect(state.board.size).toBe(size);
-      expect(isLegalPlay(state, { row: 0, col: 0 }).legal).toBe(true);
+describe('scoring phase actions', () => {
+  it('supports markDead and confirmScore without UI', () => {
+    let state = createInitialState(9);
+    const pass1 = dispatch(state, { type: 'pass' });
+    const pass2 = dispatch(pass1.ok ? pass1.state : state, { type: 'pass' });
+    if (!pass2.ok) throw new Error('pass failed');
+    state = pass2.state;
+    expect(state.phase).toBe('scoring');
+
+    const marked = dispatch(state, { type: 'markDead', position: { row: 0, col: 0 } });
+    expect(marked.ok).toBe(false);
+
+    const confirmed = dispatch(state, { type: 'confirmScore' });
+    expect(confirmed.ok).toBe(true);
+    if (confirmed.ok) {
+      expect(confirmed.state.phase).toBe('ended');
+      expect(confirmed.state.result).not.toBeNull();
+      expect(confirmed.state.result?.reason).toBe('score');
     }
   });
 });

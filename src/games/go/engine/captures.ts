@@ -1,5 +1,6 @@
-import { getStone, withoutStone } from './board';
-import { getAdjacentOpponentGroups, getGroupAfterPlacement } from './groups';
+import { positionsEqual, withStone, withoutStone } from './board';
+import { getAdjacentOpponentGroups, getGroup } from './groups';
+import { countLiberties, getLibertyPositions } from './liberties';
 import type { Board, Position, StoneColor } from './types';
 
 export interface CaptureResult {
@@ -28,40 +29,12 @@ export function getCapturedStones(
   const captured: Position[] = [];
 
   for (const group of opponentGroups) {
-    let hasLiberty = false;
+    const liberties = getLibertyPositions(board, group);
+    const remainingLiberties = liberties.filter(
+      (liberty) => !positionsEqual(liberty, pos),
+    );
 
-    for (const stone of group.stones) {
-      const neighbors = [
-        { row: stone.row - 1, col: stone.col },
-        { row: stone.row + 1, col: stone.col },
-        { row: stone.row, col: stone.col - 1 },
-        { row: stone.row, col: stone.col + 1 },
-      ];
-
-      for (const neighbor of neighbors) {
-        if (
-          neighbor.row < 0 ||
-          neighbor.row >= board.size ||
-          neighbor.col < 0 ||
-          neighbor.col >= board.size
-        ) {
-          continue;
-        }
-
-        if (neighbor.row === pos.row && neighbor.col === pos.col) {
-          continue;
-        }
-
-        if (getStone(board, neighbor) === null) {
-          hasLiberty = true;
-          break;
-        }
-      }
-
-      if (hasLiberty) break;
-    }
-
-    if (!hasLiberty) {
+    if (remainingLiberties.length === 0) {
       captured.push(...group.stones);
     }
   }
@@ -94,35 +67,14 @@ export function isSuicide(
   const captured = getCapturedStones(board, pos, color);
   if (captured.length > 0) return false;
 
-  const ownGroup = getGroupAfterPlacement(board, pos, color);
-  const ownSet = new Set(ownGroup.stones.map((s) => `${s.row},${s.col}`));
-
-  for (const stone of ownGroup.stones) {
-    const neighbors = [
-      { row: stone.row - 1, col: stone.col },
-      { row: stone.row + 1, col: stone.col },
-      { row: stone.row, col: stone.col - 1 },
-      { row: stone.row, col: stone.col + 1 },
-    ];
-
-    for (const neighbor of neighbors) {
-      if (
-        neighbor.row < 0 ||
-        neighbor.row >= board.size ||
-        neighbor.col < 0 ||
-        neighbor.col >= board.size
-      ) {
-        continue;
-      }
-
-      const key = `${neighbor.row},${neighbor.col}`;
-      if (ownSet.has(key)) continue;
-
-      if (getStone(board, neighbor) === null) {
-        return false;
-      }
-    }
+  let nextBoard = board;
+  for (const capturedPos of captured) {
+    nextBoard = withoutStone(nextBoard, capturedPos);
   }
+  nextBoard = withStone(nextBoard, pos, color);
 
-  return true;
+  const ownGroup = getGroup(nextBoard, pos);
+  if (!ownGroup) return true;
+
+  return countLiberties(nextBoard, ownGroup) === 0;
 }

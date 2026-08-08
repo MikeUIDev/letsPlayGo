@@ -1,13 +1,13 @@
-import { cloneBoard, createEmptyBoard, withStone } from './board';
+import { cloneBoard, createEmptyBoard, getStone, positionKey, positionsEqual, withStone } from './board';
 import { applyCaptures } from './captures';
 import { isLegalPlay } from './legalMoves';
-import { computeKoPoint } from './ko';
 import { defaultKomi, scoreGame } from './scoring';
 import type {
   BoardSize,
   CaptureCounts,
   GameAction,
   GameActionResult,
+  GameConfig,
   GameState,
   HistoryEntry,
   Move,
@@ -16,15 +16,28 @@ import type {
 } from './types';
 import { OPPONENT } from './types';
 
-export function createInitialState(size: BoardSize = 9): GameState {
+export interface CreateGameOptions {
+  komi?: number;
+}
+
+export function createInitialState(
+  size: BoardSize = 9,
+  options: CreateGameOptions = {},
+): GameState {
+  const config: GameConfig = {
+    size,
+    komi: options.komi ?? defaultKomi(size),
+  };
+
   return {
     board: createEmptyBoard(size),
+    config,
     currentPlayer: 'black',
     phase: 'playing',
     captures: { black: 0, white: 0 },
     history: [],
-    koPoint: null,
     consecutivePasses: 0,
+    deadStones: [],
     result: null,
   };
 }
@@ -34,11 +47,11 @@ function pushHistory(state: GameState, move: Move): HistoryEntry {
     move,
     board: cloneBoard(state.board),
     captures: { ...state.captures },
-    koPoint: state.koPoint,
     consecutivePasses: state.consecutivePasses,
     currentPlayer: state.currentPlayer,
     phase: state.phase,
     result: state.result,
+    deadStones: [...state.deadStones],
   };
 }
 
@@ -69,12 +82,13 @@ function applyPlay(state: GameState, pos: Position): GameActionResult {
 
   const nextState: GameState = {
     board,
+    config: state.config,
     currentPlayer: nextPlayer(color),
     phase: 'playing',
     captures,
     history: [...state.history, pushHistory(state, move)],
-    koPoint: computeKoPoint(captured),
     consecutivePasses: 0,
+    deadStones: state.deadStones,
     result: null,
   };
 
@@ -90,25 +104,17 @@ function applyPass(state: GameState): GameActionResult {
   const move: Move = { type: 'pass', color };
   const consecutivePasses = state.consecutivePasses + 1;
 
-  let nextState: GameState = {
+  const nextState: GameState = {
     board: state.board,
+    config: state.config,
     currentPlayer: nextPlayer(color),
-    phase: 'playing',
+    phase: consecutivePasses >= 2 ? 'scoring' : 'playing',
     captures: state.captures,
     history: [...state.history, pushHistory(state, move)],
-    koPoint: null,
     consecutivePasses,
+    deadStones: [],
     result: null,
   };
-
-  if (consecutivePasses >= 2) {
-    const result = scoreGame(state.board, defaultKomi(state.board.size));
-    nextState = {
-      ...nextState,
-      phase: 'ended',
-      result: { ...result, reason: 'double_pass' },
-    };
-  }
 
   return { ok: true, state: nextState };
 }
@@ -122,24 +128,76 @@ function applyResign(state: GameState): GameActionResult {
   const winner = nextPlayer(color);
   const move: Move = { type: 'resign', color };
 
-  const result = scoreGame(state.board, defaultKomi(state.board.size));
+  const scored = scoreGame(state.board, {
+    komi: state.config.komi,
+    deadStones: state.deadStones,
+  });
+
   const nextState: GameState = {
     board: state.board,
+    config: state.config,
     currentPlayer: nextPlayer(color),
     phase: 'ended',
     captures: state.captures,
     history: [...state.history, pushHistory(state, move)],
-    koPoint: null,
     consecutivePasses: state.consecutivePasses,
+    deadStones: state.deadStones,
     result: {
       winner,
-      blackScore: result.blackScore,
-      whiteScore: result.whiteScore,
+      blackScore: scored.blackScore,
+      whiteScore: scored.whiteScore,
       reason: 'resign',
     },
   };
 
   return { ok: true, state: nextState };
+}
+
+function applyMarkDead(state: GameState, pos: Position): GameActionResult {
+  if (state.phase !== 'scoring') {
+    return { ok: false, error: 'not_in_scoring' };
+  }
+
+  if (getStone(state.board, pos) === null) {
+    return { ok: false, error: 'no_stone' };
+  }
+
+  const alreadyDead = state.deadStones.some((dead) => positionsEqual(dead, pos));
+  const deadStones = alreadyDead
+    ? state.deadStones.filter((dead) => !positionsEqual(dead, pos))
+    : [...state.deadStones, pos];
+
+  return {
+    ok: true,
+    state: {
+      ...state,
+      deadStones,
+      result: null,
+    },
+  };
+}
+
+function applyConfirmScore(state: GameState): GameActionResult {
+  if (state.phase !== 'scoring') {
+    return { ok: false, error: 'not_in_scoring' };
+  }
+
+  const scored = scoreGame(state.board, {
+    komi: state.config.komi,
+    deadStones: state.deadStones,
+  });
+
+  return {
+    ok: true,
+    state: {
+      ...state,
+      phase: 'ended',
+      result: {
+        ...scored,
+        reason: 'score',
+      },
+    },
+  };
 }
 
 function applyUndo(state: GameState): GameActionResult {
@@ -152,12 +210,13 @@ function applyUndo(state: GameState): GameActionResult {
 
   const nextState: GameState = {
     board: cloneBoard(previous.board),
+    config: state.config,
     currentPlayer: previous.currentPlayer,
     phase: previous.phase,
     captures: { ...previous.captures },
     history,
-    koPoint: previous.koPoint,
     consecutivePasses: previous.consecutivePasses,
+    deadStones: [...previous.deadStones],
     result: previous.result,
   };
 
@@ -175,12 +234,33 @@ export function dispatch(state: GameState, action: GameAction): GameActionResult
       return applyResign(state);
     case 'undo':
       return applyUndo(state);
+    case 'markDead':
+      return applyMarkDead(state, action.position);
+    case 'confirmScore':
+      return applyConfirmScore(state);
     case 'restart':
-      return { ok: true, state: createInitialState(action.size ?? state.board.size) };
+      return {
+        ok: true,
+        state: createInitialState(action.size ?? state.config.size, {
+          komi: state.config.komi,
+        }),
+      };
   }
 }
 
 /** Flat list of moves for display (derived from history). */
 export function getMoveList(state: GameState): Move[] {
   return state.history.map((entry) => entry.move);
+}
+
+/** Toggle whether a stone is marked dead during scoring. Pure helper for tests/future UI. */
+export function toggleDeadStone(
+  deadStones: readonly Position[],
+  pos: Position,
+): Position[] {
+  const key = positionKey(pos);
+  const exists = deadStones.some((dead) => positionKey(dead) === key);
+  return exists
+    ? deadStones.filter((dead) => positionKey(dead) !== key)
+    : [...deadStones, pos];
 }

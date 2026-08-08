@@ -1,5 +1,11 @@
-import { getNeighbors, getStone } from './board';
-import type { Board, GameResult, StoneColor } from './types';
+import { getNeighbors, getStone, withoutStone } from './board';
+import type { Board, GameResult, Position, StoneColor } from './types';
+
+export interface ScoreOptions {
+  komi: number;
+  /** Intersections marked dead during scoring; removed before territory counting. */
+  deadStones?: readonly Position[];
+}
 
 interface TerritoryResult {
   blackTerritory: number;
@@ -8,19 +14,33 @@ interface TerritoryResult {
   whiteStones: number;
 }
 
+function boardForScoring(board: Board, deadStones: readonly Position[]): Board {
+  let scoringBoard = board;
+  for (const pos of deadStones) {
+    if (getStone(scoringBoard, pos) !== null) {
+      scoringBoard = withoutStone(scoringBoard, pos);
+    }
+  }
+  return scoringBoard;
+}
+
 /**
  * Chinese area scoring:
  *   score = stones on board + empty territory surrounded by that color.
- * Prisoners from captures during play are not added separately in area scoring.
+ * Captured prisoners are not added to the score in Chinese rules.
  */
-export function calculateChineseScore(board: Board): TerritoryResult {
-  const { size } = board;
+export function calculateChineseScore(
+  board: Board,
+  deadStones: readonly Position[] = [],
+): TerritoryResult {
+  const scoringBoard = boardForScoring(board, deadStones);
+  const { size } = scoringBoard;
   let blackStones = 0;
   let whiteStones = 0;
 
   for (let row = 0; row < size; row++) {
     for (let col = 0; col < size; col++) {
-      const stone = getStone(board, { row, col });
+      const stone = getStone(scoringBoard, { row, col });
       if (stone === 'black') blackStones++;
       if (stone === 'white') whiteStones++;
     }
@@ -33,9 +53,9 @@ export function calculateChineseScore(board: Board): TerritoryResult {
   for (let row = 0; row < size; row++) {
     for (let col = 0; col < size; col++) {
       const key = `${row},${col}`;
-      if (getStone(board, { row, col }) !== null || visited.has(key)) continue;
+      if (getStone(scoringBoard, { row, col }) !== null || visited.has(key)) continue;
 
-      const region = floodEmptyRegion(board, { row, col });
+      const region = floodEmptyRegion(scoringBoard, { row, col });
       for (const pos of region.positions) {
         visited.add(`${pos.row},${pos.col}`);
       }
@@ -53,13 +73,13 @@ export function calculateChineseScore(board: Board): TerritoryResult {
 
 function floodEmptyRegion(
   board: Board,
-  start: { row: number; col: number },
+  start: Position,
 ): {
-  positions: { row: number; col: number }[];
+  positions: Position[];
   touchesBlack: boolean;
   touchesWhite: boolean;
 } {
-  const positions: { row: number; col: number }[] = [];
+  const positions: Position[] = [];
   const queue = [start];
   const visited = new Set<string>();
   let touchesBlack = false;
@@ -71,8 +91,8 @@ function floodEmptyRegion(
     if (visited.has(key)) continue;
     visited.add(key);
 
-    if (getStone(board, current) !== null) {
-      const stone = getStone(board, current);
+    const stone = getStone(board, current);
+    if (stone !== null) {
       if (stone === 'black') touchesBlack = true;
       if (stone === 'white') touchesWhite = true;
       continue;
@@ -93,10 +113,11 @@ function floodEmptyRegion(
   return { positions, touchesBlack, touchesWhite };
 }
 
-/** Determine winner using Chinese area scoring. White receives +0.5 komi on odd boards. */
-export function scoreGame(board: Board, komi = 6.5): GameResult {
+/** Determine winner using Chinese area scoring. */
+export function scoreGame(board: Board, options: ScoreOptions): GameResult {
+  const { komi, deadStones = [] } = options;
   const { blackTerritory, whiteTerritory, blackStones, whiteStones } =
-    calculateChineseScore(board);
+    calculateChineseScore(board, deadStones);
 
   const blackScore = blackStones + blackTerritory;
   const whiteScore = whiteStones + whiteTerritory + komi;
@@ -114,7 +135,7 @@ export function scoreGame(board: Board, komi = 6.5): GameResult {
   };
 }
 
-/** Komi by board size (standard values; configurable later). */
+/** Default komi by board size. Override via GameConfig.komi. */
 export function defaultKomi(size: Board['size']): number {
   switch (size) {
     case 9:
@@ -124,4 +145,16 @@ export function defaultKomi(size: Board['size']): number {
     case 19:
       return 7.5;
   }
+}
+
+/** Provisional score during the scoring phase before final confirmation. */
+export function calculateProvisionalScore(state: {
+  board: Board;
+  config: { komi: number };
+  deadStones: readonly Position[];
+}): GameResult {
+  return scoreGame(state.board, {
+    komi: state.config.komi,
+    deadStones: state.deadStones,
+  });
 }

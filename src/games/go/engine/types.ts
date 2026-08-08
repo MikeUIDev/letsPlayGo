@@ -26,6 +26,12 @@ export interface Board {
   intersections: readonly (readonly IntersectionState[])[];
 }
 
+/** Static game configuration set at start or restart. */
+export interface GameConfig {
+  size: BoardSize;
+  komi: number;
+}
+
 export type MoveType = 'play' | 'pass' | 'resign';
 
 export interface PlayMove {
@@ -60,23 +66,24 @@ export interface HistoryEntry {
   move: Move;
   board: Board;
   captures: CaptureCounts;
-  koPoint: Position | null;
   consecutivePasses: number;
   currentPlayer: StoneColor;
   phase: GamePhase;
   result: GameResult | null;
+  deadStones: readonly Position[];
 }
 
 export interface GameState {
   board: Board;
+  config: GameConfig;
   currentPlayer: StoneColor;
   phase: GamePhase;
   captures: CaptureCounts;
   /** Full undo stack; latest move is last entry. */
   history: readonly HistoryEntry[];
-  /** Intersection forbidden by simple ko (null when no ko threat). */
-  koPoint: Position | null;
   consecutivePasses: number;
+  /** Stones marked dead during the scoring phase (for future UI). */
+  deadStones: readonly Position[];
   result: GameResult | null;
 }
 
@@ -94,7 +101,9 @@ export type GameAction =
   | { type: 'pass' }
   | { type: 'resign' }
   | { type: 'undo' }
-  | { type: 'restart'; size?: BoardSize };
+  | { type: 'restart'; size?: BoardSize }
+  | { type: 'markDead'; position: Position }
+  | { type: 'confirmScore' };
 
 export type GameActionResult =
   | { ok: true; state: GameState }
