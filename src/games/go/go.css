@@ -1,0 +1,171 @@
+.stone {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.stone--black {
+  background: radial-gradient(circle at 35% 35%, #555, #111);
+  box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.45);
+}
+
+.stone--white {
+  background: radial-gradient(circle at 35% 35%, #fff, #ddd);
+  box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.35);
+}
+
+.intersection {
+  position: absolute;
+  width: var(--stone-size, 32px);
+  height: var(--stone-size, 32px);
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.intersection:disabled {
+  cursor: default;
+}
+
+.intersection--legal:not(:disabled):hover::after {
+  content: '';
+  position: absolute;
+  width: 36%;
+  height: 36%;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.go-board {
+  position: relative;
+  background: #dcb35c;
+  border: 2px solid #5c3a1e;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.go-board__lines {
+  position: absolute;
+  inset: 18px;
+  width: calc(100% - 36px);
+  height: calc(100% - 36px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.go-board__lines line {
+  stroke: #222;
+  stroke-width: 1;
+}
+
+.go-board__star {
+  fill: #222;
+}
+
+.go-board__intersections {
+  position: absolute;
+  inset: 18px;
+  width: calc(100% - 36px);
+  height: calc(100% - 36px);
+  z-index: 1;
+}
+
+.go-game {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: system-ui, sans-serif;
+  color: #1a1a1a;
+}
+
+.go-game__layout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.go-game__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 200px;
+}
+
+.game-status,
+.game-controls,
+.move-history {
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.game-status h2,
+.move-history h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.game-status dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+.game-status dt {
+  font-weight: 600;
+}
+
+.game-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.game-controls button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.game-controls button:hover:not(:disabled) {
+  background: #eee;
+}
+
+.game-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.move-history ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  max-height: 240px;
+  overflow-y: auto;
+  font-size: 0.875rem;
+}
+
+.move-history li {
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .go-game__layout {
+    grid-template-columns: 1fr;
+  }
+}
