@@ -5,9 +5,9 @@ import {
   dispatch,
 } from '../engine/gameState';
 import {
-  getBoardBeforeOpponentLastPlay,
+  getBoardBeforeOpponentLastAction,
   violatesKo,
-  wouldRecreateBoardBeforeOpponentPlay,
+  wouldRecreateBoardBeforeOpponentAction,
 } from '../engine/ko';
 import { isLegalPlay } from '../engine/legalMoves';
 import type { GameState, HistoryEntry } from '../engine/types';
@@ -102,6 +102,25 @@ describe('board-hash ko detection', () => {
     expect(recapture.ok).toBe(true);
   });
 
+  it('allows recapture after opponent passes following a ko response', () => {
+    let state = buildManualKoState();
+
+    const elsewhere = dispatch(state, { type: 'play', position: { row: 0, col: 0 } });
+    expect(elsewhere.ok).toBe(true);
+    if (!elsewhere.ok) return;
+    state = elsewhere.state;
+
+    const pass = dispatch(state, { type: 'pass' });
+    expect(pass.ok).toBe(true);
+    if (!pass.ok) return;
+    state = pass.state;
+    expect(state.currentPlayer).toBe('white');
+
+    expect(violatesKo(state, { row: 7, col: 7 })).toBe(false);
+    const recapture = dispatch(state, { type: 'play', position: { row: 7, col: 7 } });
+    expect(recapture.ok).toBe(true);
+  });
+
   it('does not treat a one-stone capture as ko when the board does not repeat', () => {
     let state = createInitialState(9);
     const moves = [
@@ -167,11 +186,11 @@ describe('board-hash ko detection', () => {
     }
   });
 
-  it('uses the board before the opponent last play as the reference position', () => {
+  it('uses the board before the opponent last action as the reference position', () => {
     const state = buildManualKoState();
-    const reference = getBoardBeforeOpponentLastPlay(state);
+    const reference = getBoardBeforeOpponentLastAction(state);
     expect(reference).not.toBeNull();
-    expect(wouldRecreateBoardBeforeOpponentPlay(state, { row: 7, col: 7 })).toBe(true);
+    expect(wouldRecreateBoardBeforeOpponentAction(state, { row: 7, col: 7 })).toBe(true);
     expect(getStone(reference!, { row: 7, col: 7 })).toBe('white');
   });
 });

@@ -4,15 +4,21 @@ import type { Board, GameState, Position } from './types';
 import { OPPONENT } from './types';
 
 /**
- * Board snapshot from immediately before the opponent's most recent play move.
- * Pass and resign moves are skipped.
+ * Board snapshot from immediately before the opponent's most recent action.
+ * Each history entry stores the board before that action; the latest opponent
+ * entry is normally the last history item when it is this player's turn.
  */
-export function getBoardBeforeOpponentLastPlay(state: GameState): Board | null {
+export function getBoardBeforeOpponentLastAction(state: GameState): Board | null {
   const opponent = OPPONENT[state.currentPlayer];
+  const lastEntry = state.history.at(-1);
+
+  if (lastEntry?.move.color === opponent) {
+    return lastEntry.board;
+  }
 
   for (let i = state.history.length - 1; i >= 0; i--) {
     const entry = state.history[i];
-    if (entry.move.type === 'play' && entry.move.color === opponent) {
+    if (entry.move.color === opponent) {
       return entry.board;
     }
   }
@@ -22,13 +28,13 @@ export function getBoardBeforeOpponentLastPlay(state: GameState): Board | null {
 
 /**
  * Simple ko: illegal when the resulting board matches the position that existed
- * immediately before the opponent's previous play.
+ * immediately before the opponent's most recent action (play or pass).
  */
-export function wouldRecreateBoardBeforeOpponentPlay(
+export function wouldRecreateBoardBeforeOpponentAction(
   state: GameState,
   pos: Position,
 ): boolean {
-  const referenceBoard = getBoardBeforeOpponentLastPlay(state);
+  const referenceBoard = getBoardBeforeOpponentLastAction(state);
   if (!referenceBoard) return false;
 
   const color = state.currentPlayer;
@@ -40,5 +46,5 @@ export function wouldRecreateBoardBeforeOpponentPlay(
 
 /** True when playing at `pos` violates simple ko. */
 export function violatesKo(state: GameState, pos: Position): boolean {
-  return wouldRecreateBoardBeforeOpponentPlay(state, pos);
+  return wouldRecreateBoardBeforeOpponentAction(state, pos);
 }
