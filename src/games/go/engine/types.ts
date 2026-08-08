@@ -30,7 +30,23 @@ export interface Board {
 export interface GameConfig {
   size: BoardSize;
   komi: number;
+  firstPlayer: StoneColor;
 }
+
+/** User-selected options when starting a new game. */
+export interface NewGameSetup {
+  size: BoardSize;
+  komi: number;
+  firstPlayer: StoneColor;
+}
+
+export const DEFAULT_KOMI = 6.5;
+
+export const DEFAULT_NEW_GAME_SETUP: NewGameSetup = {
+  size: 9,
+  komi: DEFAULT_KOMI,
+  firstPlayer: 'black',
+};
 
 export type MoveType = 'play' | 'pass' | 'resign';
 
@@ -103,7 +119,8 @@ export type GameAction =
   | { type: 'undo' }
   | { type: 'restart'; size?: BoardSize }
   | { type: 'markDead'; position: Position }
-  | { type: 'confirmScore' };
+  | { type: 'confirmScore' }
+  | { type: 'resumeGame' };
 
 export type GameActionResult =
   | { ok: true; state: GameState }

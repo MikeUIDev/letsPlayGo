@@ -1,5 +1,6 @@
 import { cloneBoard, createEmptyBoard, getStone, positionKey, positionsEqual, withStone } from './board';
 import { applyCaptures } from './captures';
+import { getGroup } from './groups';
 import { isLegalPlay } from './legalMoves';
 import { defaultKomi, scoreGame } from './scoring';
 import type {
@@ -11,6 +12,7 @@ import type {
   GameState,
   HistoryEntry,
   Move,
+  NewGameSetup,
   Position,
   StoneColor,
 } from './types';
@@ -18,21 +20,21 @@ import { OPPONENT } from './types';
 
 export interface CreateGameOptions {
   komi?: number;
+  firstPlayer?: StoneColor;
 }
 
-export function createInitialState(
-  size: BoardSize = 9,
-  options: CreateGameOptions = {},
-): GameState {
+/** Create a fresh game from a complete setup configuration. */
+export function createGameFromSetup(setup: NewGameSetup): GameState {
   const config: GameConfig = {
-    size,
-    komi: options.komi ?? defaultKomi(size),
+    size: setup.size,
+    komi: setup.komi,
+    firstPlayer: setup.firstPlayer,
   };
 
   return {
-    board: createEmptyBoard(size),
+    board: createEmptyBoard(setup.size),
     config,
-    currentPlayer: 'black',
+    currentPlayer: setup.firstPlayer,
     phase: 'playing',
     captures: { black: 0, white: 0 },
     history: [],
@@ -40,6 +42,17 @@ export function createInitialState(
     deadStones: [],
     result: null,
   };
+}
+
+export function createInitialState(
+  size: BoardSize = 9,
+  options: CreateGameOptions = {},
+): GameState {
+  return createGameFromSetup({
+    size,
+    komi: options.komi ?? defaultKomi(size),
+    firstPlayer: options.firstPlayer ?? 'black',
+  });
 }
 
 function pushHistory(state: GameState, move: Move): HistoryEntry {
@@ -162,16 +175,30 @@ function applyMarkDead(state: GameState, pos: Position): GameActionResult {
     return { ok: false, error: 'no_stone' };
   }
 
-  const alreadyDead = state.deadStones.some((dead) => positionsEqual(dead, pos));
-  const deadStones = alreadyDead
-    ? state.deadStones.filter((dead) => !positionsEqual(dead, pos))
-    : [...state.deadStones, pos];
+  const deadStones = toggleDeadGroup(state.board, state.deadStones, pos);
 
   return {
     ok: true,
     state: {
       ...state,
       deadStones,
+      result: null,
+    },
+  };
+}
+
+function applyResumeGame(state: GameState): GameActionResult {
+  if (state.phase !== 'scoring') {
+    return { ok: false, error: 'not_in_scoring' };
+  }
+
+  return {
+    ok: true,
+    state: {
+      ...state,
+      phase: 'playing',
+      consecutivePasses: 0,
+      deadStones: [],
       result: null,
     },
   };
@@ -201,6 +228,10 @@ function applyConfirmScore(state: GameState): GameActionResult {
 }
 
 function applyUndo(state: GameState): GameActionResult {
+  if (state.phase !== 'playing') {
+    return { ok: false, error: 'not_in_playing' };
+  }
+
   if (state.history.length === 0) {
     return { ok: false, error: 'nothing_to_undo' };
   }
@@ -238,11 +269,15 @@ export function dispatch(state: GameState, action: GameAction): GameActionResult
       return applyMarkDead(state, action.position);
     case 'confirmScore':
       return applyConfirmScore(state);
+    case 'resumeGame':
+      return applyResumeGame(state);
     case 'restart':
       return {
         ok: true,
-        state: createInitialState(action.size ?? state.config.size, {
+        state: createGameFromSetup({
+          size: action.size ?? state.config.size,
           komi: state.config.komi,
+          firstPlayer: state.config.firstPlayer,
         }),
       };
   }
@@ -253,7 +288,37 @@ export function getMoveList(state: GameState): Move[] {
   return state.history.map((entry) => entry.move);
 }
 
-/** Toggle whether a stone is marked dead during scoring. Pure helper for tests/future UI. */
+/** Toggle an entire connected group between alive and dead during scoring. */
+export function toggleDeadGroup(
+  board: GameState['board'],
+  deadStones: readonly Position[],
+  pos: Position,
+): Position[] {
+  const group = getGroup(board, pos);
+  if (!group) return [...deadStones];
+
+  const groupKeys = new Set(group.stones.map(positionKey));
+  const allDead = group.stones.every((stone) =>
+    deadStones.some((dead) => positionsEqual(dead, stone)),
+  );
+
+  if (allDead) {
+    return deadStones.filter((dead) => !groupKeys.has(positionKey(dead)));
+  }
+
+  const existing = new Set(deadStones.map(positionKey));
+  const next = [...deadStones];
+  for (const stone of group.stones) {
+    const key = positionKey(stone);
+    if (!existing.has(key)) {
+      next.push(stone);
+      existing.add(key);
+    }
+  }
+  return next;
+}
+
+/** Toggle whether a single stone is marked dead. Prefer toggleDeadGroup for gameplay. */
 export function toggleDeadStone(
   deadStones: readonly Position[],
   pos: Position,
