@@ -10,6 +10,7 @@ import {
   setupToConfig,
 } from '../engine/gameConfig';
 import { createGameFromSetup, dispatch, getMoveList } from '../engine/gameState';
+import type { GameState } from '../engine/types';
 import * as legalMoves from '../engine/legalMoves';
 import { positionKey } from '../engine/board';
 import {
@@ -17,7 +18,19 @@ import {
   serializeGameState,
 } from '../persistence/saveGame';
 import { LEGACY_SAVED_GAME_VERSION, SAVED_GAME_VERSION } from '../persistence/types';
+import { DEFAULT_AI_DIFFICULTY } from '../engine/aiDifficulty';
 import { createAiSetup, createLocalSetup } from '../utils/gameSetup';
+
+function aiRequestFromState(state: GameState): GenerateMoveRequest {
+  return {
+    boardSize: state.config.size,
+    komi: state.config.komi,
+    colorToMove: state.currentPlayer,
+    difficulty: state.config.mode === 'ai' ? state.config.difficulty : DEFAULT_AI_DIFFICULTY,
+    moves: getMoveList(state),
+    state,
+  };
+}
 
 class ControllableGoAI implements GoAI {
   pending: Array<(result: GenerateMoveResult) => void> = [];
@@ -60,6 +73,7 @@ describe('GameConfig', () => {
       size: 9,
       komi: 6.5,
       humanColor: 'black',
+      difficulty: 'casual',
     });
     expect(getStartingPlayer(setup)).toBe('black');
     expect(state.currentPlayer).toBe('black');
@@ -87,13 +101,7 @@ describe('MockGoAI', () => {
 
     for (let turn = 0; turn < 6; turn += 1) {
       const legal = legalMoves.getLegalMoves(state);
-      const result = await ai.generateMove({
-        boardSize: state.config.size,
-        komi: state.config.komi,
-        colorToMove: state.currentPlayer,
-        moves: getMoveList(state),
-        state,
-      });
+      const result = await ai.generateMove(aiRequestFromState(state));
 
       if (legal.length === 0) {
         expect(result.type).toBe('pass');
@@ -117,13 +125,7 @@ describe('MockGoAI', () => {
     const state = createGameFromSetup(createLocalSetup());
     vi.spyOn(legalMoves, 'getLegalMoves').mockReturnValue([]);
 
-    const result = await ai.generateMove({
-      boardSize: state.config.size,
-      komi: state.config.komi,
-      colorToMove: state.currentPlayer,
-      moves: [],
-      state,
-    });
+    const result = await ai.generateMove(aiRequestFromState(state));
 
     expect(result).toEqual({ type: 'pass' });
     vi.restoreAllMocks();
@@ -136,13 +138,7 @@ describe('MockGoAI', () => {
     if (!humanMove.ok) throw new Error('human move failed');
 
     const aiState = humanMove.state;
-    const result = await ai.generateMove({
-      boardSize: aiState.config.size,
-      komi: aiState.config.komi,
-      colorToMove: aiState.currentPlayer,
-      moves: getMoveList(aiState),
-      state: aiState,
-    });
+    const result = await ai.generateMove(aiRequestFromState(aiState));
 
     const action =
       result.type === 'pass'
@@ -276,6 +272,7 @@ describe('AI scoring and persistence', () => {
       size: 13,
       komi: state.config.komi,
       humanColor: 'white',
+      difficulty: 'casual',
     });
 
     const restored = deserializeSavedGame(serialized.saved);
@@ -338,13 +335,7 @@ describe('ControllableGoAI orchestration', () => {
     const ai = new ControllableGoAI();
     const state = createGameFromSetup(createAiSetup({ humanColor: 'white' }));
 
-    const requestPromise = ai.generateMove({
-      boardSize: state.config.size,
-      komi: state.config.komi,
-      colorToMove: state.currentPlayer,
-      moves: getMoveList(state),
-      state,
-    });
+    const requestPromise = ai.generateMove(aiRequestFromState(state));
 
     expect(ai.calls).toBe(1);
     ai.resolveNext({ type: 'play', position: { row: 2, col: 2 } });

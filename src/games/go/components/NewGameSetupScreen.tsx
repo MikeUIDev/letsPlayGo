@@ -1,13 +1,18 @@
 import { useEffect, useId, useState } from 'react';
+import { AI_DIFFICULTY_OPTIONS, DEFAULT_AI_DIFFICULTY } from '../engine/aiDifficulty';
+import type { AIDifficulty } from '../engine/aiDifficulty';
 import type { BoardSize, GameMode, NewGameSetup, StoneColor } from '../engine/types';
 import { DEFAULT_NEW_GAME_SETUP } from '../engine/types';
 import {
   AI_SUPPORTED_BOARD_SIZES,
   BOARD_SIZE_OPTIONS,
   formatKomiInput,
+  getDefaultKomi,
   isAiSupportedBoardSize,
+  isKomiCustomizedForBoardSize,
   isValidKomi,
   parseKomiInput,
+  resolveKomiForBoardSizeChange,
 } from '../utils/gameSetup';
 import { StoneIcon } from './StoneIcon';
 import { SgfFileInput } from './SgfFileInput';
@@ -65,18 +70,28 @@ export function NewGameSetupScreen({
 }: NewGameSetupScreenProps) {
   const komiFieldId = useId();
   const [komiInput, setKomiInput] = useState(formatKomiInput(setup.komi));
+  const [isKomiCustomized, setIsKomiCustomized] = useState(() =>
+    isKomiCustomizedForBoardSize(setup.komi, setup.size),
+  );
   const parsedKomi = parseKomiInput(komiInput);
   const komiValid = isValidKomi(parsedKomi);
+  const defaultKomiForSize = getDefaultKomi(setup.size);
+  const showKomiReset = isKomiCustomized || (komiValid && parsedKomi !== defaultKomiForSize);
 
   useEffect(() => {
     setKomiInput(formatKomiInput(setup.komi));
-  }, [setup.komi]);
+    setIsKomiCustomized(isKomiCustomizedForBoardSize(setup.komi, setup.size));
+  }, [setup.komi, setup.size]);
 
   function selectSize(size: BoardSize) {
     if (setup.mode === 'ai' && !isAiSupportedBoardSize(size)) {
       return;
     }
-    onSetupChange({ ...setup, size });
+    onSetupChange({
+      ...setup,
+      size,
+      komi: resolveKomiForBoardSizeChange(setup.komi, size, isKomiCustomized),
+    });
   }
 
   function selectMode(mode: GameMode) {
@@ -97,6 +112,7 @@ export function NewGameSetupScreen({
       size: isAiSupportedBoardSize(setup.size) ? setup.size : AI_SUPPORTED_BOARD_SIZES[0],
       komi: setup.komi,
       humanColor: setup.mode === 'local' ? setup.firstPlayer : setup.humanColor,
+      difficulty: setup.mode === 'ai' ? setup.difficulty : DEFAULT_AI_DIFFICULTY,
     });
   }
 
@@ -110,12 +126,25 @@ export function NewGameSetupScreen({
     onSetupChange({ ...setup, humanColor });
   }
 
+  function selectDifficulty(difficulty: AIDifficulty) {
+    if (setup.mode !== 'ai') return;
+    onSetupChange({ ...setup, difficulty });
+  }
+
   function handleKomiChange(value: string) {
     setKomiInput(value);
+    setIsKomiCustomized(true);
     const nextKomi = parseKomiInput(value);
     if (isValidKomi(nextKomi)) {
       onSetupChange({ ...setup, komi: nextKomi });
     }
+  }
+
+  function handleResetKomi() {
+    const nextKomi = getDefaultKomi(setup.size);
+    setIsKomiCustomized(false);
+    setKomiInput(formatKomiInput(nextKomi));
+    onSetupChange({ ...setup, komi: nextKomi });
   }
 
   function handleStart() {
@@ -215,7 +244,15 @@ export function NewGameSetupScreen({
             aria-describedby={`${komiFieldId}-hint`}
           />
           <p id={`${komiFieldId}-hint`} className="go-setup__hint">
-            Points added to White
+            Points added to White. Default for {setup.size}×{setup.size}: {formatKomiInput(defaultKomiForSize)}.
+            {showKomiReset ? (
+              <>
+                {' '}
+                <button type="button" className="go-setup__inline-button" onClick={handleResetKomi}>
+                  Use default
+                </button>
+              </>
+            ) : null}
           </p>
         </div>
 
@@ -253,6 +290,41 @@ export function NewGameSetupScreen({
                 name="human-color"
                 onSelect={() => selectHumanColor('white')}
               />
+            </div>
+          </fieldset>
+        )}
+
+        {setup.mode === 'ai' && (
+          <fieldset className="go-setup__field">
+            <legend className="go-setup__legend">Difficulty</legend>
+            <div
+              className="go-setup__segmented go-setup__segmented--difficulty"
+              role="radiogroup"
+              aria-label="AI difficulty"
+            >
+              {AI_DIFFICULTY_OPTIONS.map(({ value, label, description }) => {
+                const selected = setup.difficulty === value;
+                const id = `ai-difficulty-${value}`;
+
+                return (
+                  <label
+                    key={value}
+                    htmlFor={id}
+                    className={`setup-option setup-option--difficulty${selected ? ' setup-option--selected' : ''}`}
+                  >
+                    <input
+                      id={id}
+                      type="radio"
+                      name="ai-difficulty"
+                      className="setup-option__input"
+                      checked={selected}
+                      onChange={() => selectDifficulty(value)}
+                    />
+                    <span className="setup-option__label">{label}</span>
+                    <span className="setup-option__descriptor">{description}</span>
+                  </label>
+                );
+              })}
             </div>
           </fieldset>
         )}

@@ -9,6 +9,7 @@ export type ApiMoveRequestPayload = {
   boardSize: number;
   komi: number;
   colorToMove: 'black' | 'white';
+  difficulty: GenerateMoveRequest['difficulty'];
   moves: ApiMovePayload[];
 };
 
@@ -17,6 +18,7 @@ export function serializeMoveRequest(request: GenerateMoveRequest): ApiMoveReque
     boardSize: request.boardSize,
     komi: request.komi,
     colorToMove: request.colorToMove,
+    difficulty: request.difficulty,
     moves: request.moves.flatMap(serializeMove),
   };
 }

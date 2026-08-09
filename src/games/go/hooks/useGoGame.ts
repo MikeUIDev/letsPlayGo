@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createGoAnalysis } from '../analysis/createGoAnalysis';
+import type { GoAnalysisService } from '../analysis/types';
 import { createGoAI } from '../ai/createGoAI';
 import { undoForGameMode } from '../ai/undoAi';
 import type { GoAI, AIStatus } from '../ai/types';
@@ -35,6 +37,7 @@ export type AppView = 'resume' | 'setup' | 'game';
 
 export interface UseGoGameOptions {
   ai?: GoAI;
+  analysis?: GoAnalysisService;
 }
 
 export interface UseGoGameResult {
@@ -52,7 +55,9 @@ export interface UseGoGameResult {
   canResume: boolean;
   isScoring: boolean;
   isEnded: boolean;
+  isReviewing: boolean;
   aiStatus: AIStatus;
+  analysis: GoAnalysisService;
   scoreBreakdown: ScoreBreakdown | null;
   provisionalResult: ReturnType<typeof calculateProvisionalScore> | null;
   territoryMap: Map<string, TerritoryOwner>;
@@ -69,10 +74,13 @@ export interface UseGoGameResult {
   discardSavedGame: () => void;
   exportCurrentSgf: () => void;
   importSgfFile: (content: string) => void;
+  enterReview: () => void;
+  exitReview: () => void;
 }
 
 export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
   const ai = useMemo(() => options.ai ?? createGoAI(), [options.ai]);
+  const analysis = useMemo(() => options.analysis ?? createGoAnalysis(), [options.analysis]);
   const initialSaved = useMemo(() => loadSavedGame(), []);
   const [view, setView] = useState<AppView>(initialSaved ? 'resume' : 'setup');
   const [resumeSnapshot, setResumeSnapshot] = useState<GameState | null>(initialSaved);
@@ -85,6 +93,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
   const [state, setState] = useState<GameState | null>(null);
   const [savedGameState, setSavedGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isReviewing, setIsReviewing] = useState(false);
   const stateRef = useRef<GameState | null>(null);
 
   useEffect(() => {
@@ -155,6 +164,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
   const openSetup = useCallback(() => {
     const current = stateRef.current;
 
+    setIsReviewing(false);
     if (current) {
       setSavedGameState(current);
       setSetupDraft(setupFromConfig(current.config));
@@ -191,6 +201,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
   const startGame = useCallback(
     (setup: NewGameSetup) => {
       cancelPendingAi();
+      setIsReviewing(false);
       const nextState = createGameFromSetup(setup);
       setState(nextState);
       setLastSetup(setup);
@@ -245,6 +256,17 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     },
     [loadGameState],
   );
+
+  const enterReview = useCallback(() => {
+    if (stateRef.current?.phase === 'ended') {
+      setIsReviewing(true);
+      setError(null);
+    }
+  }, []);
+
+  const exitReview = useCallback(() => {
+    setIsReviewing(false);
+  }, []);
 
   const humanCanInteract =
     Boolean(state && state.phase === 'playing' && isHumanTurn(state.config, state.currentPlayer));
@@ -319,7 +341,9 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     canResume: state?.phase === 'scoring',
     isScoring: state?.phase === 'scoring',
     isEnded: state?.phase === 'ended',
+    isReviewing,
     aiStatus,
+    analysis,
     scoreBreakdown,
     provisionalResult,
     territoryMap,
@@ -336,5 +360,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     discardSavedGame,
     exportCurrentSgf,
     importSgfFile,
+    enterReview,
+    exitReview,
   };
 }

@@ -1,5 +1,10 @@
 import type { BoardSize, Position } from '../engine/types';
 
+/**
+ * SGF file coordinates (aa, pq, …) use a separate system from human Go notation (A1, D4).
+ * Keep SGF conversion isolated from display coordinates in `coordinates/goCoordinates.ts`.
+ */
+
 /** Convert board position to lowercase SGF coordinates (e.g. dd). */
 export function positionToSgf({ row, col }: Position): string {
   return `${String.fromCharCode(97 + col)}${String.fromCharCode(97 + row)}`;

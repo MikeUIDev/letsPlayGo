@@ -1,11 +1,35 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import {
   createGameFromSetup,
   createInitialState,
   dispatch,
 } from '../engine/gameState';
+import { calculateScoreBreakdown } from '../engine/scoring';
 import { DEFAULT_NEW_GAME_SETUP } from '../engine/types';
-import { isValidKomi, parseKomiInput, createAiSetup, createLocalSetup } from '../utils/gameSetup';
+import {
+  createAiSetup,
+  createLocalSetup,
+  getDefaultKomi,
+  isKomiCustomizedForBoardSize,
+  isValidKomi,
+  parseKomiInput,
+  resolveKomiForBoardSizeChange,
+} from '../utils/gameSetup';
+import { loadSavedGame, saveGameToStorage, setStorageAdapter, type StorageAdapter } from '../persistence/saveGame';
+
+function createMemoryStorage(): StorageAdapter & { store: Map<string, string> } {
+  const store = new Map<string, string>();
+  return {
+    store,
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, value) => {
+      store.set(key, value);
+    },
+    removeItem: (key) => {
+      store.delete(key);
+    },
+  };
+}
 
 describe('createGameFromSetup', () => {
   it('creates a 9x9 board', () => {
@@ -113,5 +137,76 @@ describe('komi validation', () => {
     expect(parseKomiInput('')).toBeNull();
     expect(parseKomiInput('-1')).toBeNull();
     expect(isValidKomi(parseKomiInput('not-a-number'))).toBe(false);
+  });
+});
+
+describe('getDefaultKomi', () => {
+  it('returns 6.5 for 9x9', () => {
+    expect(getDefaultKomi(9)).toBe(6.5);
+  });
+
+  it('returns 6.5 for 13x13', () => {
+    expect(getDefaultKomi(13)).toBe(6.5);
+  });
+
+  it('returns 7.5 for 19x19', () => {
+    expect(getDefaultKomi(19)).toBe(7.5);
+  });
+});
+
+describe('komi board-size behavior', () => {
+  beforeEach(() => {
+    setStorageAdapter(createMemoryStorage());
+  });
+
+  it('updates default komi when switching 9x9 to 19x19', () => {
+    expect(resolveKomiForBoardSizeChange(6.5, 19, false)).toBe(7.5);
+  });
+
+  it('updates default komi when switching 19x19 to 9x9', () => {
+    expect(resolveKomiForBoardSizeChange(7.5, 9, false)).toBe(6.5);
+  });
+
+  it('preserves custom komi when board size changes', () => {
+    expect(resolveKomiForBoardSizeChange(5.5, 19, true)).toBe(5.5);
+    expect(resolveKomiForBoardSizeChange(5.5, 9, true)).toBe(5.5);
+  });
+
+  it('detects customized komi from previous game settings', () => {
+    expect(isKomiCustomizedForBoardSize(5.5, 9)).toBe(true);
+    expect(isKomiCustomizedForBoardSize(6.5, 9)).toBe(false);
+    expect(isKomiCustomizedForBoardSize(7.5, 19)).toBe(false);
+    expect(isKomiCustomizedForBoardSize(6.5, 19)).toBe(true);
+  });
+
+  it('uses board-size default when resetting customized komi conceptually', () => {
+    expect(getDefaultKomi(19)).toBe(7.5);
+    expect(isKomiCustomizedForBoardSize(getDefaultKomi(19), 19)).toBe(false);
+  });
+
+  it('creates local setup with size-appropriate default komi', () => {
+    expect(createLocalSetup({ size: 19 }).komi).toBe(7.5);
+    expect(createLocalSetup({ size: 13 }).komi).toBe(6.5);
+    expect(createLocalSetup({ size: 9 }).komi).toBe(6.5);
+  });
+
+  it('passes selected komi into new GameState', () => {
+    const state = createGameFromSetup(createLocalSetup({ size: 19, komi: 7.5, firstPlayer: 'black' }));
+    expect(state.config.komi).toBe(7.5);
+    expect(state.board.size).toBe(19);
+  });
+
+  it('preserves custom komi in saved game persistence', () => {
+    const state = createGameFromSetup(createLocalSetup({ size: 9, komi: 5.5, firstPlayer: 'black' }));
+    saveGameToStorage(state);
+    const restored = loadSavedGame();
+    expect(restored?.config.komi).toBe(5.5);
+  });
+
+  it('uses configured komi in scoring', () => {
+    const state = createGameFromSetup(createLocalSetup({ size: 9, komi: 8.5, firstPlayer: 'black' }));
+    const breakdown = calculateScoreBreakdown(state.board, state.config.komi);
+    expect(breakdown.komi).toBe(8.5);
+    expect(breakdown.whiteTotal).toBe(breakdown.whiteStones + breakdown.whiteTerritory + 8.5);
   });
 });

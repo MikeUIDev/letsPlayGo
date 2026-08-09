@@ -11,6 +11,7 @@ describe('AI request validation', () => {
       boardSize: 9,
       komi: 6.5,
       colorToMove: 'white',
+      difficulty: 'casual',
       moves: [{ color: 'black', x: 4, y: 4 }],
     });
 
@@ -22,6 +23,7 @@ describe('AI request validation', () => {
       boardSize: 19,
       komi: 6.5,
       colorToMove: 'black',
+      difficulty: 'casual',
       moves: [],
     });
 
@@ -32,14 +34,14 @@ describe('AI request validation', () => {
   });
 
   it('rejects invalid komi and colors', () => {
-    expect(validateAiMoveRequest({ boardSize: 9, komi: NaN, colorToMove: 'black', moves: [] }).ok).toBe(
+    expect(validateAiMoveRequest({ boardSize: 9, komi: NaN, colorToMove: 'black', difficulty: 'casual', moves: [] }).ok).toBe(
       false,
     );
-    expect(validateAiMoveRequest({ boardSize: 9, komi: 99, colorToMove: 'black', moves: [] }).ok).toBe(
+    expect(validateAiMoveRequest({ boardSize: 9, komi: 99, colorToMove: 'black', difficulty: 'casual', moves: [] }).ok).toBe(
       false,
     );
     expect(
-      validateAiMoveRequest({ boardSize: 9, komi: 6.5, colorToMove: 'red', moves: [] }).ok,
+      validateAiMoveRequest({ boardSize: 9, komi: 6.5, colorToMove: 'red', difficulty: 'casual', moves: [] }).ok,
     ).toBe(false);
   });
 
@@ -49,6 +51,7 @@ describe('AI request validation', () => {
         boardSize: 9,
         komi: 6.5,
         colorToMove: 'black',
+        difficulty: 'casual',
         moves: [{ color: 'white', x: 9, y: 0 }],
       }).ok,
     ).toBe(false);
@@ -58,6 +61,7 @@ describe('AI request validation', () => {
         boardSize: 9,
         komi: 6.5,
         colorToMove: 'black',
+        difficulty: 'casual',
         moves: Array.from({ length: 201 }, () => ({ color: 'black', type: 'pass' })),
       }).ok,
     ).toBe(false);

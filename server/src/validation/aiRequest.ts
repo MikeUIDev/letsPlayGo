@@ -1,4 +1,5 @@
 import type { AiMoveRequest, ApiMove, StoneColor } from '../katago/types.js';
+import { isAIDifficulty } from '../ai/difficulty.js';
 
 export const SUPPORTED_AI_BOARD_SIZE = 9 as const;
 export const MIN_KOMI = 0;
@@ -47,6 +48,10 @@ export function validateAiMoveRequest(body: unknown): ValidationResult {
 
   const payload = body as Record<string, unknown>;
 
+  if ('maxVisits' in payload) {
+    return { ok: false, error: 'forbidden_field' };
+  }
+
   if (payload.boardSize !== SUPPORTED_AI_BOARD_SIZE) {
     return { ok: false, error: 'unsupported_board_size' };
   }
@@ -61,6 +66,10 @@ export function validateAiMoveRequest(body: unknown): ValidationResult {
 
   if (!isStoneColor(payload.colorToMove)) {
     return { ok: false, error: 'invalid_color_to_move' };
+  }
+
+  if (!isAIDifficulty(payload.difficulty)) {
+    return { ok: false, error: 'invalid_difficulty' };
   }
 
   if (!Array.isArray(payload.moves)) {
@@ -86,6 +95,7 @@ export function validateAiMoveRequest(body: unknown): ValidationResult {
       boardSize: SUPPORTED_AI_BOARD_SIZE,
       komi: payload.komi,
       colorToMove: payload.colorToMove,
+      difficulty: payload.difficulty,
       moves,
     },
   };
@@ -116,6 +126,9 @@ export function validationErrorMessage(code: string): string {
       return 'Komi must be a valid number within the allowed range.';
     case 'invalid_color_to_move':
       return 'colorToMove must be black or white.';
+    case 'invalid_difficulty':
+    case 'forbidden_field':
+      return 'Invalid AI request.';
     case 'invalid_moves':
     case 'invalid_move':
     case 'too_many_moves':

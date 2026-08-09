@@ -39,6 +39,7 @@ export function setupToConfig(setup: NewGameSetup): GameConfig {
     size: setup.size,
     komi: setup.komi,
     humanColor: setup.humanColor,
+    difficulty: setup.difficulty,
   };
 }
 
@@ -57,6 +58,7 @@ export function configToSetup(config: GameConfig): NewGameSetup {
     size: config.size,
     komi: config.komi,
     humanColor: config.humanColor,
+    difficulty: config.difficulty,
   };
 }
 

@@ -7,6 +7,7 @@ import type {
   GameState,
   StoneColor,
 } from '../engine/types';
+import type { AIDifficulty } from '../engine/aiDifficulty';
 
 export const SAVED_GAME_VERSION = 2 as const;
 export const LEGACY_SAVED_GAME_VERSION = 1 as const;
@@ -45,6 +46,7 @@ export type SerializedAIGameConfig = {
   size: BoardSize;
   komi: number;
   humanColor: StoneColor;
+  difficulty?: AIDifficulty;
 };
 
 export type SerializedGameConfig = SerializedLocalGameConfig | SerializedAIGameConfig;

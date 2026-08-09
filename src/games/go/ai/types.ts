@@ -1,4 +1,5 @@
 import type { BoardSize, GameState, Move, Position, StoneColor } from '../engine/types';
+import type { AIDifficulty } from '../engine/aiDifficulty';
 
 /** Future analysis fields may be added without changing the core move result. */
 export type GenerateMoveAnalysis = {
@@ -10,6 +11,7 @@ export type GenerateMoveRequest = {
   boardSize: BoardSize;
   komi: number;
   colorToMove: StoneColor;
+  difficulty: AIDifficulty;
   moves: Move[];
   state: GameState;
 };

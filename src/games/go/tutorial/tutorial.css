@@ -1,0 +1,275 @@
+.tutorial-page {
+  padding-bottom: var(--space-7);
+}
+
+.tutorial-page__inner {
+  max-width: 980px;
+}
+
+.tutorial-header {
+  padding: var(--space-6) 0 var(--space-4);
+}
+
+.tutorial-header__eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.tutorial-header__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+}
+
+.tutorial-header__intro {
+  max-width: 42rem;
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.tutorial-progress-bar {
+  margin-top: var(--space-4);
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  overflow: hidden;
+}
+
+.tutorial-progress-bar__fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 180ms ease;
+}
+
+.tutorial-progress-bar__label {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.tutorial-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.tutorial-panel {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.tutorial-panel__progress,
+.tutorial-panel__concept,
+.tutorial-panel__learn-more,
+.tutorial-panel__tip,
+.tutorial-panel__hint {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.tutorial-panel__lesson {
+  margin: 0 0 var(--space-2);
+  font-size: 1.1rem;
+}
+
+.tutorial-panel__title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.2rem;
+}
+
+.tutorial-panel__body {
+  margin: 0 0 var(--space-3);
+  line-height: 1.65;
+}
+
+.tutorial-panel__feedback {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  line-height: 1.55;
+}
+
+.tutorial-panel__feedback--try-again {
+  background: color-mix(in srgb, var(--color-warning, #b45309) 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-warning, #b45309) 35%, var(--color-border));
+}
+
+.tutorial-panel__feedback--correct {
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+}
+
+.tutorial-board-wrap {
+  min-width: 0;
+}
+
+.tutorial-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.tutorial-controls__primary,
+.tutorial-controls__secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tutorial-controls__button {
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tutorial-controls__button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.tutorial-controls__button--primary {
+  color: var(--color-primary-text);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.tutorial-controls__button--ghost {
+  background: transparent;
+}
+
+.tutorial-lesson-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.tutorial-lesson-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.tutorial-lesson-list__meta {
+  display: flex;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.tutorial-lesson-list__order {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tutorial-lesson-list__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.tutorial-lesson-list__summary {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.tutorial-lesson-list__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tutorial-lesson-list__badge {
+  font-size: 0.82rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.tutorial-lesson-list__link,
+.tutorial-resume__link,
+.tutorial-complete__link,
+.tutorial-hub-footer__link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.tutorial-resume {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.tutorial-hub-footer,
+.tutorial-complete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.tutorial-hub-footer__reset,
+.tutorial-complete__link--secondary {
+  color: var(--color-text-muted);
+}
+
+.tutorial-start-card {
+  display: block;
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+  text-decoration: none;
+  color: inherit;
+}
+
+.tutorial-start-card__title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.1rem;
+}
+
+.tutorial-start-card__description {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+@media (max-width: 860px) {
+  .tutorial-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tutorial-board-wrap {
+    order: -1;
+  }
+}

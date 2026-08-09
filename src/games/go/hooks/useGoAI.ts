@@ -63,6 +63,7 @@ export function useGoAI({
       boardSize: state.config.size,
       komi: state.config.komi,
       colorToMove: state.currentPlayer,
+      difficulty: state.config.difficulty,
       moves: getMoveList(state),
       state,
     };

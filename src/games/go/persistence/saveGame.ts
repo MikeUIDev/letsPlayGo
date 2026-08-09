@@ -1,4 +1,5 @@
 import type { Board, BoardSize, GameConfig, GameState, HistoryEntry, Move, Position } from '../engine/types';
+import { normalizeAiDifficulty } from '../engine/aiDifficulty';
 import type {
   DeserializeResult,
   SerializeResult,
@@ -179,6 +180,7 @@ function deserializeConfig(value: unknown): GameConfig | null {
       size: config.size,
       komi: config.komi,
       humanColor: config.humanColor,
+      difficulty: normalizeAiDifficulty(config.difficulty),
     };
   }
 

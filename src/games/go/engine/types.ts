@@ -1,5 +1,10 @@
+import type { AIDifficulty } from './aiDifficulty';
+
 /** Supported board dimensions. Start with 9×9; 13 and 19 are first-class. */
 export type BoardSize = 9 | 13 | 19;
+
+export type { AIDifficulty } from './aiDifficulty';
+export { DEFAULT_AI_DIFFICULTY } from './aiDifficulty';
 
 export type StoneColor = 'black' | 'white';
 
@@ -41,6 +46,7 @@ export type AIGameConfig = {
   size: BoardSize;
   komi: number;
   humanColor: StoneColor;
+  difficulty: AIDifficulty;
 };
 
 export type GameConfig = LocalGameConfig | AIGameConfig;
@@ -57,6 +63,7 @@ export type NewGameSetupAI = {
   size: BoardSize;
   komi: number;
   humanColor: StoneColor;
+  difficulty: AIDifficulty;
 };
 
 export type NewGameSetup = NewGameSetupLocal | NewGameSetupAI;

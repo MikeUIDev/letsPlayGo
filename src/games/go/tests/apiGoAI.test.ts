@@ -8,7 +8,7 @@ import { createAiSetup } from '../utils/gameSetup';
 
 describe('serializeMoveRequest', () => {
   it('serializes engine moves to API coordinates', () => {
-    let state = createGameFromSetup(createAiSetup());
+    let state = createGameFromSetup(createAiSetup({ difficulty: 'strong' }));
     const played = dispatch(state, { type: 'play', position: { row: 2, col: 3 } });
     if (!played.ok) throw new Error('play failed');
     state = played.state;
@@ -17,6 +17,7 @@ describe('serializeMoveRequest', () => {
       boardSize: 9,
       komi: 6.5,
       colorToMove: 'white',
+      difficulty: 'strong',
       moves: getMoveList(state),
       state,
     });
@@ -25,6 +26,7 @@ describe('serializeMoveRequest', () => {
       boardSize: 9,
       komi: 6.5,
       colorToMove: 'white',
+      difficulty: 'strong',
       moves: [{ color: 'black', x: 3, y: 2 }],
     });
   });
@@ -64,6 +66,7 @@ describe('ApiGoAI', () => {
       boardSize: 9,
       komi: 6.5,
       colorToMove: 'white',
+      difficulty: 'casual',
       moves: [],
       state,
     });
@@ -90,6 +93,7 @@ describe('ApiGoAI', () => {
         boardSize: 9,
         komi: 6.5,
         colorToMove: 'black',
+        difficulty: 'casual',
         moves: [],
         state,
       }),
@@ -113,6 +117,7 @@ describe('ApiGoAI', () => {
         boardSize: 9,
         komi: 6.5,
         colorToMove: 'black',
+        difficulty: 'casual',
         moves: [],
         state,
       }),

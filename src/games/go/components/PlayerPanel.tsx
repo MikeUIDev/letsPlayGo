@@ -1,4 +1,5 @@
 import type { AIStatus } from '../ai/types';
+import { formatAiPlayerSubtitle } from '../engine/aiDifficulty';
 import { getAiColor, isAiGameConfig } from '../engine/gameConfig';
 import type { GameState, StoneColor } from '../engine/types';
 import { StoneIcon } from './StoneIcon';
@@ -40,6 +41,10 @@ function PlayerCard({
   const aiColor = isAiGameConfig(state.config) ? getAiColor(state.config) : null;
   const isAiPlayer = aiColor === color;
   const isAiThinking = isAiPlayer && aiStatus === 'thinking' && state.phase === 'playing';
+  const aiSubtitle =
+    isAiPlayer && isAiGameConfig(state.config)
+      ? formatAiPlayerSubtitle(state.config.difficulty)
+      : null;
 
   const status = isAiThinking
     ? 'Thinking…'
@@ -66,6 +71,7 @@ function PlayerCard({
         <StoneIcon color={color} />
         <div className="player-card__meta">
           <h2 className="player-card__name">{label}</h2>
+          {aiSubtitle && <p className="player-card__subtitle">{aiSubtitle}</p>}
           <p className="player-card__status">{status}</p>
         </div>
       </div>

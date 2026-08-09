@@ -1,3 +1,5 @@
+import type { AIDifficulty } from '../ai/difficulty.js';
+
 export type StoneColor = 'black' | 'white';
 
 export type GridPosition = {
@@ -13,6 +15,7 @@ export type AiMoveRequest = {
   boardSize: 9;
   komi: number;
   colorToMove: StoneColor;
+  difficulty: AIDifficulty;
   moves: ApiMove[];
 };
 

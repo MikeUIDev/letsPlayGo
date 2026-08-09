@@ -13,6 +13,7 @@ describe('KataGoClient', () => {
         boardSize: 9,
         komi: 6.5,
         colorToMove: 'white',
+        difficulty: 'casual',
         moves: [{ color: 'black', x: 4, y: 4 }],
       },
       5_000,
@@ -25,6 +26,7 @@ describe('KataGoClient', () => {
       boardXSize: 9,
       boardYSize: 9,
       analyzeTurns: [1],
+      maxVisits: 64,
       moves: [['B', 'E5']],
     });
   });
@@ -39,6 +41,7 @@ describe('KataGoClient', () => {
         boardSize: 9,
         komi: 6.5,
         colorToMove: 'black',
+        difficulty: 'expert',
         moves: [],
       },
       5_000,
@@ -48,6 +51,7 @@ describe('KataGoClient', () => {
     expect(process.queries[0]).toMatchObject({
       analyzeTurns: [0],
       initialPlayer: 'B',
+      maxVisits: 1000,
     });
   });
 });

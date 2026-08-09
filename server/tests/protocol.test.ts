@@ -34,6 +34,7 @@ describe('analysis protocol', () => {
         boardSize: 9,
         komi: 6.5,
         colorToMove: 'white',
+        difficulty: 'casual',
         moves: [{ color: 'black', x: 4, y: 4 }],
       },
       'move-1',
@@ -46,7 +47,7 @@ describe('analysis protocol', () => {
       boardXSize: 9,
       boardYSize: 9,
       analyzeTurns: [1],
-      maxVisits: 100,
+      maxVisits: 64,
       moves: [['B', 'E5']],
     });
   });
@@ -57,6 +58,7 @@ describe('analysis protocol', () => {
         boardSize: 9,
         komi: 6.5,
         colorToMove: 'black',
+        difficulty: 'beginner',
         moves: [],
       },
       'move-open',
@@ -64,6 +66,7 @@ describe('analysis protocol', () => {
 
     expect(query.initialPlayer).toBe('B');
     expect(query.analyzeTurns).toEqual([0]);
+    expect(query.maxVisits).toBe(24);
   });
 
   it('converts pass moves for KataGo', () => {

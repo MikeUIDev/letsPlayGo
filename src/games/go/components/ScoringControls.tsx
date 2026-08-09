@@ -36,22 +36,24 @@ export function ScoringControls({
 }
 
 interface FinishedControlsProps {
+  onEnterReview: () => void;
   onNewGame: () => void;
   onExportSgf: () => void;
   className?: string;
 }
 
-export function FinishedControls({ onNewGame, onExportSgf, className = '' }: FinishedControlsProps) {
-  function scrollToBoard() {
-    document.querySelector('.go-board-shell')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
+export function FinishedControls({
+  onEnterReview,
+  onNewGame,
+  onExportSgf,
+  className = '',
+}: FinishedControlsProps) {
   return (
     <div className={`scoring-controls ${className}`.trim()}>
       <button
         type="button"
         className="control-button control-button--secondary"
-        onClick={scrollToBoard}
+        onClick={onEnterReview}
       >
         Review Board
       </button>

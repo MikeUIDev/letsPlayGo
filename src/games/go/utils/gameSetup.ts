@@ -1,6 +1,12 @@
 import { configToSetup } from '../engine/gameConfig';
-import type { GameConfig, NewGameSetup, NewGameSetupAI, NewGameSetupLocal } from '../engine/types';
+import { DEFAULT_AI_DIFFICULTY } from '../engine/aiDifficulty';
+import type { BoardSize, GameConfig, NewGameSetup, NewGameSetupAI, NewGameSetupLocal } from '../engine/types';
 import { DEFAULT_KOMI } from '../engine/types';
+import { defaultKomi } from '../engine/scoring';
+
+export function getDefaultKomi(size: BoardSize): number {
+  return defaultKomi(size);
+}
 
 export const AI_SUPPORTED_BOARD_SIZES = [9] as const;
 export type AiSupportedBoardSize = (typeof AI_SUPPORTED_BOARD_SIZES)[number];
@@ -38,15 +44,30 @@ export function formatKomiInput(komi: number): string {
   return Number.isInteger(komi) ? String(komi) : komi.toFixed(1);
 }
 
+/** True when komi differs from the default for the given board size. */
+export function isKomiCustomizedForBoardSize(komi: number, size: BoardSize): boolean {
+  return komi !== getDefaultKomi(size);
+}
+
+/** Komi to use after a board-size change, respecting manual customization. */
+export function resolveKomiForBoardSizeChange(
+  currentKomi: number,
+  newSize: BoardSize,
+  isKomiCustomized: boolean,
+): number {
+  return isKomiCustomized ? currentKomi : getDefaultKomi(newSize);
+}
+
 export const DEFAULT_KOMI_DISPLAY = formatKomiInput(DEFAULT_KOMI);
 
 export function createLocalSetup(
   overrides: Partial<Omit<NewGameSetupLocal, 'mode'>> = {},
 ): NewGameSetupLocal {
+  const size = overrides.size ?? 9;
   return {
     mode: 'local',
-    size: 9,
-    komi: DEFAULT_KOMI,
+    size,
+    komi: overrides.komi ?? getDefaultKomi(size),
     firstPlayer: 'black',
     ...overrides,
   };
@@ -55,11 +76,13 @@ export function createLocalSetup(
 export function createAiSetup(
   overrides: Partial<Omit<NewGameSetupAI, 'mode'>> = {},
 ): NewGameSetupAI {
+  const size = overrides.size ?? 9;
   return {
     mode: 'ai',
-    size: 9,
-    komi: DEFAULT_KOMI,
+    size,
+    komi: overrides.komi ?? getDefaultKomi(size),
     humanColor: 'black',
+    difficulty: DEFAULT_AI_DIFFICULTY,
     ...overrides,
   };
 }

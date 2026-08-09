@@ -1,4 +1,7 @@
 import type { AiMoveRequest, GenerateMoveResult } from './types.js';
+import { getMaxVisitsForDifficulty } from '../ai/difficulty.js';
+import { REVIEW_ANALYSIS } from '../ai/reviewConfig.js';
+import type { AnalyzeRequest } from '../validation/analyzeRequest.js';
 import {
   colorToGtpToken,
   gridToGtpVertex,
@@ -14,6 +17,13 @@ export type AnalysisMoveInfo = {
   visits?: number;
   winrate?: number;
   scoreLead?: number;
+  pv?: string[];
+};
+
+export type AnalysisRootInfo = {
+  winrate?: number;
+  scoreLead?: number;
+  visits?: number;
 };
 
 export type AnalysisResponse = {
@@ -23,6 +33,7 @@ export type AnalysisResponse = {
   isDuringSearch?: boolean;
   turnNumber?: number;
   moveInfos?: AnalysisMoveInfo[];
+  rootInfo?: AnalysisRootInfo;
   version?: string;
   git_hash?: string;
 };
@@ -49,11 +60,31 @@ export function apiMoveToKataGoMove(
   return [color, vertex];
 }
 
+export function buildReviewAnalysisQuery(
+  request: AnalyzeRequest,
+  id: string,
+): Record<string, unknown> {
+  const moves = request.moves.map((move) => apiMoveToKataGoMove(move, request.boardSize));
+  const turnNumber = request.moves.length;
+
+  return {
+    id,
+    moves,
+    rules: 'chinese',
+    komi: request.komi,
+    boardXSize: request.boardSize,
+    boardYSize: request.boardSize,
+    analyzeTurns: [turnNumber],
+    maxVisits: REVIEW_ANALYSIS.maxVisits,
+    ...(turnNumber === 0 ? { initialPlayer: colorToGtpToken(request.colorToMove) } : {}),
+  };
+}
+
 export function buildAnalysisQuery(
   request: AiMoveRequest,
   id: string,
-  maxVisits = DEFAULT_MAX_VISITS,
 ): Record<string, unknown> {
+  const maxVisits = getMaxVisitsForDifficulty(request.difficulty);
   const moves = request.moves.map((move) => apiMoveToKataGoMove(move, request.boardSize));
   const turnNumber = request.moves.length;
 

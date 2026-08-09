@@ -6,6 +6,8 @@ interface GameControlsProps {
   canUndo: boolean;
   canAct: boolean;
   canConfirmScore: boolean;
+  showCoordinates: boolean;
+  onToggleCoordinates: () => void;
   onAction: (action: GameAction) => void;
   onNewGame: () => void;
   onExportSgf: () => void;
@@ -17,6 +19,8 @@ export function GameControls({
   canUndo,
   canAct,
   canConfirmScore,
+  showCoordinates,
+  onToggleCoordinates,
   onAction,
   onNewGame,
   onExportSgf,
@@ -134,6 +138,15 @@ export function GameControls({
                 </button>
               )}
             </SgfFileInput>
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              aria-checked={showCoordinates}
+              className="more-menu__item"
+              onClick={onToggleCoordinates}
+            >
+              Show coordinates
+            </button>
             <button
               type="button"
               role="menuitem"

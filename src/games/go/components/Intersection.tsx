@@ -1,10 +1,13 @@
 import type { CSSProperties } from 'react';
+import { positionToGoCoordinate } from '../coordinates';
+import type { BoardSize } from '../engine/types';
 import type { TerritoryOwner } from '../engine/scoring';
 import type { IntersectionState, Position, StoneColor } from '../engine/types';
 import { Stone } from './Stone';
 
 interface IntersectionProps {
   position: Position;
+  boardSize: BoardSize;
   stone: IntersectionState;
   currentPlayer: StoneColor;
   isLegal: boolean;
@@ -15,6 +18,12 @@ interface IntersectionProps {
   canPlay: boolean;
   canMarkDead: boolean;
   readOnly: boolean;
+  candidateRank?: number;
+  primaryCandidate?: boolean;
+  emphasizeCandidate?: boolean;
+  variationMarker?: { step: number; color: StoneColor };
+  conceptHighlighted?: boolean;
+  allowIllegalPlays?: boolean;
   onPlay: (position: Position) => void;
   onMarkDead: (position: Position) => void;
   style: CSSProperties;
@@ -22,6 +31,7 @@ interface IntersectionProps {
 
 export function Intersection({
   position,
+  boardSize,
   stone,
   currentPlayer,
   isLegal,
@@ -32,18 +42,27 @@ export function Intersection({
   canPlay,
   canMarkDead,
   readOnly,
+  candidateRank,
+  primaryCandidate = false,
+  emphasizeCandidate = false,
+  variationMarker,
+  conceptHighlighted = false,
+  allowIllegalPlays = false,
   onPlay,
   onMarkDead,
   style,
 }: IntersectionProps) {
+  const coordinate = positionToGoCoordinate(position, boardSize);
   const label = stone
-    ? `${stone} stone at ${position.row + 1}, ${position.col + 1}${isDead ? ', marked dead' : ''}`
+    ? `${coordinate}, ${stone} stone${isDead ? ', marked dead' : ''}`
     : territoryOwner && territoryOwner !== 'neutral'
-      ? `${territoryOwner} territory at ${position.row + 1}, ${position.col + 1}`
-      : `empty intersection at ${position.row + 1}, ${position.col + 1}`;
+      ? `${coordinate}, ${territoryOwner} territory`
+      : `${coordinate}, empty intersection`;
 
   const isInteractive =
-    !readOnly && ((canMarkDead && stone !== null) || (canPlay && stone === null && isLegal));
+    !readOnly &&
+    ((canMarkDead && stone !== null) ||
+      (canPlay && stone === null && (isLegal || allowIllegalPlays)));
 
   function handleClick() {
     if (readOnly) return;
@@ -53,7 +72,7 @@ export function Intersection({
       return;
     }
 
-    if (canPlay && stone === null && isLegal) {
+    if (canPlay && stone === null && (isLegal || allowIllegalPlays)) {
       onPlay(position);
     }
   }
@@ -61,7 +80,7 @@ export function Intersection({
   return (
     <button
       type="button"
-      className={`intersection${isLegal ? ' intersection--legal' : ''}${canMarkDead && stone !== null ? ' intersection--scoring-stone' : ''}${readOnly ? ' intersection--readonly' : ''}`}
+      className={`intersection${isLegal ? ' intersection--legal' : ''}${canMarkDead && stone !== null ? ' intersection--scoring-stone' : ''}${readOnly ? ' intersection--readonly' : ''}${candidateRank ? ' intersection--candidate' : ''}${conceptHighlighted ? ' intersection--concept-highlight' : ''}`}
       style={style}
       aria-label={label}
       aria-disabled={readOnly || !isInteractive}
@@ -78,11 +97,27 @@ export function Intersection({
               aria-hidden="true"
             />
           )}
-          {canPlay && isLegal && (
+          {canPlay && (isLegal || allowIllegalPlays) && (
             <span
               className={`intersection__ghost intersection__ghost--${currentPlayer}`}
               aria-hidden="true"
             />
+          )}
+          {!stone && candidateRank && (
+            <span
+              className={`intersection__candidate-marker${primaryCandidate ? ' intersection__candidate-marker--primary' : ''}${emphasizeCandidate ? ' intersection__candidate-marker--emphasized' : ''}`}
+              aria-hidden="true"
+            >
+              {candidateRank}
+            </span>
+          )}
+          {!stone && !candidateRank && variationMarker && (
+            <span
+              className={`intersection__variation-marker intersection__variation-marker--${variationMarker.color}`}
+              aria-label={`Variation move ${variationMarker.step}`}
+            >
+              {variationMarker.step}
+            </span>
           )}
         </>
       )}
