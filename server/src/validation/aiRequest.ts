@@ -1,7 +1,7 @@
 import type { AiMoveRequest, ApiMove, StoneColor } from '../katago/types.js';
 import { isAIDifficulty } from '../ai/difficulty.js';
+import { isSupportedAiBoardSize } from './boardSizes.js';
 
-export const SUPPORTED_AI_BOARD_SIZE = 9 as const;
 export const MIN_KOMI = 0;
 export const MAX_KOMI = 20;
 export const MAX_MOVE_COUNT = 200;
@@ -52,9 +52,11 @@ export function validateAiMoveRequest(body: unknown): ValidationResult {
     return { ok: false, error: 'forbidden_field' };
   }
 
-  if (payload.boardSize !== SUPPORTED_AI_BOARD_SIZE) {
+  if (!isSupportedAiBoardSize(payload.boardSize)) {
     return { ok: false, error: 'unsupported_board_size' };
   }
+
+  const boardSize = payload.boardSize;
 
   if (typeof payload.komi !== 'number' || !Number.isFinite(payload.komi)) {
     return { ok: false, error: 'invalid_komi' };
@@ -82,7 +84,7 @@ export function validateAiMoveRequest(body: unknown): ValidationResult {
 
   const moves: ApiMove[] = [];
   for (const entry of payload.moves) {
-    const parsed = parseMove(entry, SUPPORTED_AI_BOARD_SIZE);
+    const parsed = parseMove(entry, boardSize);
     if (!parsed) {
       return { ok: false, error: 'invalid_move' };
     }
@@ -92,7 +94,7 @@ export function validateAiMoveRequest(body: unknown): ValidationResult {
   return {
     ok: true,
     request: {
-      boardSize: SUPPORTED_AI_BOARD_SIZE,
+      boardSize,
       komi: payload.komi,
       colorToMove: payload.colorToMove,
       difficulty: payload.difficulty,
@@ -120,7 +122,7 @@ export function toAiMoveResponse(result: { type: 'play'; position: { x: number; 
 export function validationErrorMessage(code: string): string {
   switch (code) {
     case 'unsupported_board_size':
-      return 'AI currently supports 9×9 boards only.';
+      return 'AI supports 9×9, 13×13, and 19×19 boards only.';
     case 'invalid_komi':
     case 'komi_out_of_range':
       return 'Komi must be a valid number within the allowed range.';

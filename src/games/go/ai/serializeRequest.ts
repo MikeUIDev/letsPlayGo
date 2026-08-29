@@ -1,19 +1,8 @@
+import type { ApiMoveRequestBody } from '../api/contracts';
 import type { GenerateMoveRequest } from './types';
 import type { Move } from '../engine/types';
 
-type ApiMovePayload =
-  | { color: 'black' | 'white'; type: 'pass' }
-  | { color: 'black' | 'white'; x: number; y: number };
-
-export type ApiMoveRequestPayload = {
-  boardSize: number;
-  komi: number;
-  colorToMove: 'black' | 'white';
-  difficulty: GenerateMoveRequest['difficulty'];
-  moves: ApiMovePayload[];
-};
-
-export function serializeMoveRequest(request: GenerateMoveRequest): ApiMoveRequestPayload {
+export function serializeMoveRequest(request: GenerateMoveRequest): ApiMoveRequestBody {
   return {
     boardSize: request.boardSize,
     komi: request.komi,
@@ -23,7 +12,7 @@ export function serializeMoveRequest(request: GenerateMoveRequest): ApiMoveReque
   };
 }
 
-function serializeMove(move: Move): ApiMovePayload[] {
+function serializeMove(move: Move): import('../api/contracts').ApiMovePayload[] {
   if (move.type === 'pass') {
     return [{ color: move.color, type: 'pass' }];
   }

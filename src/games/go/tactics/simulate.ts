@@ -17,6 +17,7 @@ export function createSimulationState(
       size: board.size,
       komi: 6.5,
       firstPlayer: 'black',
+      liveCoach: false,
     },
     currentPlayer,
     phase: 'playing',

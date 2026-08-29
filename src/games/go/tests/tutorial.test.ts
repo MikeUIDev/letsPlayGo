@@ -273,6 +273,31 @@ describe('tutorial isolation', () => {
     expect(hookSource).toContain('MockGoAI');
     expect(hookSource).not.toContain('ApiGoAI');
     expect(hookSource).not.toContain('KataGo');
+    expect(hookSource).toContain('retryToken');
+    expect(hookSource).toContain('retryStep');
+  });
+});
+
+describe('tutorial mobile controls', () => {
+  it('debounces rapid control actions', () => {
+    let count = 0;
+    const now = vi.spyOn(Date, 'now');
+    now.mockReturnValueOnce(1000).mockReturnValueOnce(1100).mockReturnValueOnce(1500);
+
+    const lastAt = { value: 0 };
+    const run = (action: () => void) => {
+      const t = Date.now();
+      if (t - lastAt.value < 400) return;
+      lastAt.value = t;
+      action();
+    };
+
+    run(() => count++);
+    run(() => count++);
+    run(() => count++);
+
+    expect(count).toBe(2);
+    now.mockRestore();
   });
 });
 

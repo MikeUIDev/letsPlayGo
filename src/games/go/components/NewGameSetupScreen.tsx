@@ -21,6 +21,8 @@ interface NewGameSetupScreenProps {
   setup: NewGameSetup;
   canCancel: boolean;
   error?: string | null;
+  showCoordinates: boolean;
+  onShowCoordinatesChange: (show: boolean) => void;
   onSetupChange: (setup: NewGameSetup) => void;
   onStart: (setup: NewGameSetup) => void;
   onCancel: () => void;
@@ -63,6 +65,8 @@ export function NewGameSetupScreen({
   setup,
   canCancel,
   error = null,
+  showCoordinates,
+  onShowCoordinatesChange,
   onSetupChange,
   onStart,
   onCancel,
@@ -103,6 +107,7 @@ export function NewGameSetupScreen({
         size: setup.size,
         komi: setup.komi,
         firstPlayer: setup.mode === 'ai' ? setup.humanColor : setup.firstPlayer,
+        liveCoach: setup.liveCoach,
       });
       return;
     }
@@ -113,6 +118,7 @@ export function NewGameSetupScreen({
       komi: setup.komi,
       humanColor: setup.mode === 'local' ? setup.firstPlayer : setup.humanColor,
       difficulty: setup.mode === 'ai' ? setup.difficulty : DEFAULT_AI_DIFFICULTY,
+      liveCoach: setup.liveCoach,
     });
   }
 
@@ -153,7 +159,7 @@ export function NewGameSetupScreen({
   }
 
   return (
-    <main className="go-setup">
+    <main className="go-setup" id="main-content" tabIndex={-1}>
       <div className="go-shell go-setup__card">
         <header className="go-setup__header">
           <h1 className="go-setup__title">New Game</h1>
@@ -225,7 +231,7 @@ export function NewGameSetupScreen({
             })}
           </div>
           {setup.mode === 'ai' && (
-            <p className="go-setup__hint">More AI board sizes coming later.</p>
+            <p className="go-setup__hint">AI supports 9×9, 13×13, and 19×19 boards.</p>
           )}
         </fieldset>
 
@@ -328,6 +334,36 @@ export function NewGameSetupScreen({
             </div>
           </fieldset>
         )}
+
+        <fieldset className="go-setup__field">
+          <legend className="go-setup__legend">Board Coordinates</legend>
+          <label className="go-setup__checkbox">
+            <input
+              type="checkbox"
+              checked={showCoordinates}
+              onChange={(event) => onShowCoordinatesChange(event.target.checked)}
+            />
+            <span>Show board coordinates</span>
+          </label>
+          <p className="go-setup__help">
+            Letter and number labels on the board edges. You can also toggle this during play.
+          </p>
+        </fieldset>
+
+        <fieldset className="go-setup__field">
+          <legend className="go-setup__legend">Live Coach</legend>
+          <label className="go-setup__checkbox">
+            <input
+              type="checkbox"
+              checked={setup.liveCoach}
+              onChange={(event) => onSetupChange({ ...setup, liveCoach: event.target.checked })}
+            />
+            <span>Enable Live Coach during play</span>
+          </label>
+          <p className="go-setup__help">
+            Optional post-move concepts and warnings. Best-move hints are only shown when you ask.
+          </p>
+        </fieldset>
 
         <div className={`go-setup__actions${canCancel ? '' : ' go-setup__actions--solo'}`}>
           {canCancel && (

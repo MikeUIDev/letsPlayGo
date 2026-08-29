@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { closeRegisteredOverlays } from '../../../navigation/overlayNavigation';
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24,6 +25,8 @@ export function useLearnSectionNavigation() {
 
   const goToSection = useCallback(
     (sectionId: string) => {
+      closeRegisteredOverlays();
+
       if (location.pathname !== '/learn') {
         navigate({ pathname: '/learn', hash: sectionId });
         return;

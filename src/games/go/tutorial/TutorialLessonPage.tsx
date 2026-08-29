@@ -53,6 +53,8 @@ function TutorialLessonRunner({
     handleContinue,
     advanceStep,
     goToPreviousStep,
+    retryStep,
+    restartLesson,
   } = useTutorialLesson(lesson, initialStep);
 
   const nextLessonId = getNextLessonId(lesson.id);
@@ -65,7 +67,7 @@ function TutorialLessonRunner({
 
   if (isComplete || feedbackState === 'complete') {
     return (
-      <div className="tutorial-page">
+      <div className="tutorial-page" id="main-content" tabIndex={-1}>
         <div className="go-shell tutorial-page__inner">
           <header className="tutorial-header">
             <p className="tutorial-header__eyebrow">Tutorial</p>
@@ -99,7 +101,7 @@ function TutorialLessonRunner({
     feedbackState !== 'correct';
 
   return (
-    <div className="tutorial-page">
+    <div className="tutorial-page tutorial-page--lesson" id="main-content" tabIndex={-1}>
       <div className="go-shell tutorial-page__inner">
         <header className="tutorial-header">
           <p className="tutorial-header__eyebrow">Tutorial</p>
@@ -142,6 +144,7 @@ function TutorialLessonRunner({
                 showCoordinates
                 conceptHighlightKeys={conceptHighlights}
                 allowIllegalPlays={allowIllegalPlays}
+                touchFriendly={false}
               />
             </div>
           ) : null}
@@ -153,6 +156,7 @@ function TutorialLessonRunner({
           canPrevious={stepIndex > 0}
           canPass={canPass}
           canHint={canHint}
+          canRetry={feedbackState === 'try-again'}
           onContinue={() => {
             if (feedbackState === 'correct') {
               handleContinue();
@@ -163,7 +167,9 @@ function TutorialLessonRunner({
           onPrevious={goToPreviousStep}
           onPass={handlePass}
           onHint={showHint}
-          onExit={() => navigate('/learn/tutorial')}
+          onRetry={retryStep}
+          onRestart={restartLesson}
+          onExit={() => navigate('/learn/tutorial', { replace: true })}
         />
       </div>
     </div>

@@ -21,6 +21,7 @@ export function importSgf(text: string): ImportSgfResult {
     size,
     komi,
     firstPlayer,
+    liveCoach: false,
   });
 
   for (const move of moves) {

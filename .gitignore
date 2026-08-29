@@ -24,6 +24,13 @@ dist-ssr/
 !.env.example
 server/.env
 
+# Capacitor / iOS
+ios/App/Pods
+ios/App/App/public
+ios/DerivedData
+**/xcuserdata/
+*.xcuserstate
+
 # KataGo assets (install locally — do not commit)
 *.bin.gz
 /katago/

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameAction } from '../engine/types';
+import { getFocusableElements } from '../../../accessibility/focusTrap';
+import { registerOverlayCloser } from '../../../navigation/overlayNavigation';
 import { SgfFileInput } from './SgfFileInput';
 
 interface GameControlsProps {
@@ -9,7 +11,9 @@ interface GameControlsProps {
   showCoordinates: boolean;
   onToggleCoordinates: () => void;
   onAction: (action: GameAction) => void;
-  onNewGame: () => void;
+  onRequestPass: () => void;
+  onRequestResign: () => void;
+  onRequestNewGame: () => void;
   onExportSgf: () => void;
   onImportSgf: (content: string) => void;
   className?: string;
@@ -22,7 +26,9 @@ export function GameControls({
   showCoordinates,
   onToggleCoordinates,
   onAction,
-  onNewGame,
+  onRequestPass,
+  onRequestResign,
+  onRequestNewGame,
   onExportSgf,
   onImportSgf,
   className = '',
@@ -31,9 +37,18 @@ export function GameControls({
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    return registerOverlayCloser(() => setMenuOpen(false));
+  }, []);
+
+  useEffect(() => {
     if (!menuOpen) return;
 
-    function handlePointerDown(event: MouseEvent) {
+    const firstItem = menuRef.current?.querySelector<HTMLElement>(
+      '[role="menuitem"], [role="menuitemcheckbox"]',
+    );
+    firstItem?.focus();
+
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
       }
@@ -45,11 +60,44 @@ export function GameControls({
       }
     }
 
+    function handleMenuKeyDown(event: KeyboardEvent) {
+      const panel = menuRef.current?.querySelector<HTMLElement>('[role="menu"]');
+      if (!panel) {
+        return;
+      }
+
+      const items = getFocusableElements(panel).filter(
+        (element) => element.getAttribute('role') === 'menuitem' || element.getAttribute('role') === 'menuitemcheckbox',
+      );
+      const index = items.findIndex((item) => item === document.activeElement);
+      if (index === -1) {
+        return;
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        items[(index + 1) % items.length]?.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        items[(index - 1 + items.length) % items.length]?.focus();
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        items[0]?.focus();
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        items.at(-1)?.focus();
+      }
+    }
+
     document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown, { passive: true });
     document.addEventListener('keydown', handleEscape);
+    document.addEventListener('keydown', handleMenuKeyDown);
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
       document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleMenuKeyDown);
     };
   }, [menuOpen]);
 
@@ -79,7 +127,7 @@ export function GameControls({
         type="button"
         className="control-button control-button--primary"
         disabled={!canAct}
-        onClick={() => onAction({ type: 'pass' })}
+        onClick={onRequestPass}
       >
         Pass
       </button>
@@ -90,6 +138,7 @@ export function GameControls({
           className="control-button control-button--secondary"
           aria-haspopup="menu"
           aria-expanded={menuOpen}
+          aria-label="More game actions"
           onClick={() => setMenuOpen((open) => !open)}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -100,14 +149,14 @@ export function GameControls({
           More
         </button>
         {menuOpen && (
-          <div className="more-menu__panel" role="menu">
+          <div className="more-menu__panel" role="menu" aria-label="More game actions">
             <button
               type="button"
               role="menuitem"
               className="more-menu__item"
               onClick={() => {
                 setMenuOpen(false);
-                onNewGame();
+                onRequestNewGame();
               }}
             >
               New Game
@@ -150,9 +199,12 @@ export function GameControls({
             <button
               type="button"
               role="menuitem"
-              className="more-menu__item"
+              className="more-menu__item more-menu__item--destructive"
               disabled={!canAct}
-              onClick={() => run({ type: 'resign' })}
+              onClick={() => {
+                setMenuOpen(false);
+                onRequestResign();
+              }}
             >
               Resign
             </button>

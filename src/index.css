@@ -3,6 +3,25 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* iOS safe areas — zero on desktop/web; used by .go-app children via inheritance. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Stable viewport height in mobile WebViews (100vh alone is wrong on iOS). */
+  --viewport-height: 100vh;
+  --viewport-height: 100dvh;
+
+  /* Match .go-app background so edge-to-edge paint under notch/home indicator. */
+  --app-bg: #f7f3ef;
+}
+
+html {
+  height: 100%;
+  background-color: var(--app-bg);
+  overflow-x: clip;
 }
 
 * {
@@ -11,14 +30,43 @@
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100%;
+  min-height: var(--viewport-height);
+  background-color: var(--app-bg);
 }
 
 #root {
-  min-height: 100vh;
+  min-height: 100%;
+  min-height: var(--viewport-height);
 }
 
 button,
 select {
   font: inherit;
+}
+
+.skip-link {
+  position: fixed;
+  left: max(var(--space-3), var(--safe-left));
+  top: max(var(--space-3), var(--safe-top));
+  z-index: 1000;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-sm, 0.375rem);
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #1f1d1b);
+  border: 2px solid var(--color-primary, #5b6b8c);
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 120ms ease;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
 }

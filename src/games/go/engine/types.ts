@@ -39,6 +39,7 @@ export type LocalGameConfig = {
   size: BoardSize;
   komi: number;
   firstPlayer: StoneColor;
+  liveCoach: boolean;
 };
 
 export type AIGameConfig = {
@@ -47,6 +48,7 @@ export type AIGameConfig = {
   komi: number;
   humanColor: StoneColor;
   difficulty: AIDifficulty;
+  liveCoach: boolean;
 };
 
 export type GameConfig = LocalGameConfig | AIGameConfig;
@@ -56,6 +58,7 @@ export type NewGameSetupLocal = {
   size: BoardSize;
   komi: number;
   firstPlayer: StoneColor;
+  liveCoach: boolean;
 };
 
 export type NewGameSetupAI = {
@@ -64,6 +67,7 @@ export type NewGameSetupAI = {
   komi: number;
   humanColor: StoneColor;
   difficulty: AIDifficulty;
+  liveCoach: boolean;
 };
 
 export type NewGameSetup = NewGameSetupLocal | NewGameSetupAI;
@@ -75,6 +79,7 @@ export const DEFAULT_NEW_GAME_SETUP: NewGameSetup = {
   size: 9,
   komi: DEFAULT_KOMI,
   firstPlayer: 'black',
+  liveCoach: false,
 };
 
 export type MoveType = 'play' | 'pass' | 'resign';
@@ -127,7 +132,7 @@ export interface GameState {
   /** Full undo stack; latest move is last entry. */
   history: readonly HistoryEntry[];
   consecutivePasses: number;
-  /** Stones marked dead during the scoring phase (for future UI). */
+  /** Stones marked dead during the scoring phase. */
   deadStones: readonly Position[];
   result: GameResult | null;
 }

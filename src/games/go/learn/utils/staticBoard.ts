@@ -16,6 +16,7 @@ export function buildDiagramState(size: DiagramSize, stones: DiagramStone[]): Ga
       size: size as BoardSize,
       komi: 6.5,
       firstPlayer: 'black',
+      liveCoach: false,
     },
     currentPlayer: 'black',
     phase: 'ended',

@@ -39,6 +39,7 @@ export type SerializedLocalGameConfig = {
   size: BoardSize;
   komi: number;
   firstPlayer: StoneColor;
+  liveCoach?: boolean;
 };
 
 export type SerializedAIGameConfig = {
@@ -47,6 +48,7 @@ export type SerializedAIGameConfig = {
   komi: number;
   humanColor: StoneColor;
   difficulty?: AIDifficulty;
+  liveCoach?: boolean;
 };
 
 export type SerializedGameConfig = SerializedLocalGameConfig | SerializedAIGameConfig;

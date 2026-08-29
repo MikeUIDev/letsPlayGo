@@ -1,0 +1,235 @@
+/* Shared touch, press, and motion polish for web + Capacitor iOS. */
+
+@keyframes app-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes app-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* iOS WebView: reduce bounce/selection around gameplay chrome. */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+.go-board-frame,
+.go-board-viewport,
+.go-board,
+.go-board__intersections {
+  -webkit-touch-callout: none;
+}
+
+.go-board-viewport--fit {
+  overscroll-behavior: contain;
+}
+
+/* Immediate press feedback (transform-only). */
+.control-button:active:not(:disabled),
+.go-home__resume-card:active,
+.go-home__nav-button:active,
+.go-settings__option:active,
+.go-settings__toggle:active,
+.more-menu__item:active:not(:disabled),
+.practice-controls__button:active:not(:disabled),
+.tutorial-controls__button:active:not(:disabled),
+.learn-card:active {
+  transform: scale(var(--press-scale));
+}
+
+.game-header__nav-link:active {
+  transform: scale(0.97);
+}
+
+.app-subnav__back:active {
+  transform: scale(0.97);
+}
+
+.intersection--interactive:active:not([aria-disabled='true']) {
+  transform: scale(0.94);
+}
+
+/* Touch devices: avoid sticky hover after tap; keep desktop hover on fine pointers. */
+@media (hover: hover) and (pointer: fine) {
+  .game-header__nav-link:hover:not(.game-header__nav-link--active),
+  .game-header__nav-link:focus-visible:not(.game-header__nav-link--active) {
+    color: var(--color-text);
+    background: var(--color-surface-muted);
+  }
+
+  .app-subnav__back:hover,
+  .app-subnav__back:focus-visible {
+    color: var(--color-text);
+    background: var(--color-surface-muted);
+  }
+
+  .control-button--primary:hover:not(:disabled) {
+    background: #3a3531;
+  }
+
+  .control-button--secondary:hover:not(:disabled) {
+    background: var(--color-surface-muted);
+  }
+
+  .control-button--destructive:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-error) 88%, black);
+  }
+
+  .more-menu__item:hover:not(:disabled) {
+    background: var(--color-surface-muted);
+  }
+
+  .learn-card:hover,
+  .learn-card:focus-visible {
+    border-color: var(--color-border-strong);
+    transform: translateY(-1px);
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .game-header__nav-link:not(.game-header__nav-link--active):hover {
+    color: var(--color-text-muted);
+    background: transparent;
+  }
+
+  .control-button--primary:hover:not(:disabled) {
+    background: var(--color-primary);
+  }
+
+  .control-button--secondary:hover:not(:disabled) {
+    background: var(--color-surface);
+  }
+
+  .control-button--destructive:hover:not(:disabled) {
+    background: var(--color-error);
+  }
+
+  .more-menu__item:hover:not(:disabled) {
+    background: transparent;
+  }
+
+  .learn-card:hover {
+    border-color: var(--color-border);
+    transform: none;
+  }
+}
+
+/* Home cards: match control touch baseline. */
+.go-home__resume-card,
+.go-home__nav-button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition:
+    transform 80ms var(--ease-standard),
+    border-color var(--motion-fast) ease,
+    background-color var(--motion-fast) ease;
+}
+
+.go-home__nav-button {
+  font: inherit;
+}
+
+.go-home__resume-card:active {
+  border-color: var(--color-border-strong);
+}
+
+/* Settings options: subtle press without layout shift. */
+.go-settings__option,
+.go-settings__toggle {
+  transition:
+    transform 80ms var(--ease-standard),
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease;
+}
+
+/* Practice / tutorial controls align with app buttons. */
+.practice-controls__button,
+.tutorial-controls__button {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition:
+    transform 80ms var(--ease-standard),
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease;
+}
+
+.intersection {
+  transition: transform 80ms var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-sheet__backdrop,
+  .game-sheet__panel,
+  .more-menu__panel {
+    animation: none;
+  }
+
+  .stone--placed {
+    animation: none;
+  }
+
+  .intersection__ghost,
+  .player-card,
+  .control-button,
+  .go-home__resume-card,
+  .go-home__nav-button,
+  .go-settings__option,
+  .go-settings__toggle,
+  .more-menu__item,
+  .practice-controls__button,
+  .tutorial-controls__button,
+  .learn-card,
+  .intersection,
+  .game-header__nav-link {
+    transition: none;
+  }
+
+  .control-button:active:not(:disabled),
+  .go-home__resume-card:active,
+  .go-home__nav-button:active,
+  .go-settings__option:active,
+  .go-settings__toggle:active,
+  .more-menu__item:active:not(:disabled),
+  .practice-controls__button:active:not(:disabled),
+  .tutorial-controls__button:active:not(:disabled),
+  .learn-card:active,
+  .game-header__nav-link:active,
+  .app-subnav__back:active,
+  .intersection--interactive:active:not([aria-disabled='true']) {
+    transform: none;
+  }
+
+  .intersection-pending-pulse,
+  .intersection__pending-ring {
+    animation: none;
+  }
+}

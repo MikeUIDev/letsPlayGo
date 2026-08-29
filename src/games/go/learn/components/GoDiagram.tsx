@@ -40,6 +40,7 @@ export function GoDiagram({
           reviewMode
           showCoordinates={showCoordinates}
           conceptHighlightKeys={conceptHighlightKeys}
+          touchFriendly={false}
         />
       </div>
       {caption ? <figcaption className="learn-diagram__caption">{caption}</figcaption> : null}

@@ -1,13 +1,10 @@
 import type { ApiMove, StoneColor } from '../katago/types.js';
-import {
-  MAX_KOMI,
-  MAX_MOVE_COUNT,
-  MIN_KOMI,
-  SUPPORTED_AI_BOARD_SIZE,
-} from './aiRequest.js';
+import type { SupportedAiBoardSize } from './boardSizes.js';
+import { isSupportedAiBoardSize } from './boardSizes.js';
+import { MAX_KOMI, MAX_MOVE_COUNT, MIN_KOMI } from './aiRequest.js';
 
 export type AnalyzeRequest = {
-  boardSize: 9;
+  boardSize: SupportedAiBoardSize;
   komi: number;
   colorToMove: StoneColor;
   moves: ApiMove[];
@@ -59,9 +56,11 @@ export function validateAnalyzeRequest(body: unknown): AnalyzeValidationResult {
     return { ok: false, error: 'forbidden_field' };
   }
 
-  if (payload.boardSize !== SUPPORTED_AI_BOARD_SIZE) {
+  if (!isSupportedAiBoardSize(payload.boardSize)) {
     return { ok: false, error: 'unsupported_board_size' };
   }
+
+  const boardSize = payload.boardSize;
 
   if (typeof payload.komi !== 'number' || !Number.isFinite(payload.komi)) {
     return { ok: false, error: 'invalid_komi' };
@@ -85,7 +84,7 @@ export function validateAnalyzeRequest(body: unknown): AnalyzeValidationResult {
 
   const moves: ApiMove[] = [];
   for (const entry of payload.moves) {
-    const parsed = parseMove(entry, SUPPORTED_AI_BOARD_SIZE);
+    const parsed = parseMove(entry, boardSize);
     if (!parsed) {
       return { ok: false, error: 'invalid_move' };
     }
@@ -95,7 +94,7 @@ export function validateAnalyzeRequest(body: unknown): AnalyzeValidationResult {
   return {
     ok: true,
     request: {
-      boardSize: SUPPORTED_AI_BOARD_SIZE,
+      boardSize,
       komi: payload.komi,
       colorToMove: payload.colorToMove,
       moves,
@@ -106,7 +105,7 @@ export function validateAnalyzeRequest(body: unknown): AnalyzeValidationResult {
 export function analyzeValidationErrorMessage(code: string): string {
   switch (code) {
     case 'unsupported_board_size':
-      return 'Analysis currently supports 9×9 boards only.';
+      return 'Analysis supports 9×9, 13×13, and 19×19 boards only.';
     case 'invalid_komi':
     case 'komi_out_of_range':
       return 'Komi must be a valid number within the allowed range.';

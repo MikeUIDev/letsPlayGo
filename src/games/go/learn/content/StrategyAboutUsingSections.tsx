@@ -115,7 +115,8 @@ export function AboutSection() {
         </ul>
         <p>
           Standard Go supports 9×9, 13×13, and 19×19 boards. Local two-player mode in Let&apos;s Play
-          Go supports all three sizes. AI and analysis currently support {AI_SUPPORTED_BOARD_SIZES.join('×')} only.
+          Go supports all three sizes. AI and analysis support{' '}
+          {AI_SUPPORTED_BOARD_SIZES.map((size) => `${size}×${size}`).join(', ')} boards.
         </p>
       </article>
 

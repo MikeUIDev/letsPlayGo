@@ -1,9 +1,12 @@
 export type AiErrorCode =
+  | 'offline'
   | 'unavailable'
   | 'timeout'
   | 'invalid_response'
   | 'invalid_move'
   | 'network';
+
+export const MAX_AI_RETRY_ATTEMPTS = 8;
 
 export class AiError extends Error {
   readonly code: AiErrorCode;
@@ -21,14 +24,30 @@ export function formatAiError(error: unknown): string {
   }
 
   if (error instanceof DOMException && error.name === 'AbortError') {
-    return 'The AI took too long to respond.';
+    return aiTimeoutMessage();
   }
 
   if (error instanceof TypeError) {
-    return 'AI is unavailable right now.';
+    return aiUnavailableMessage();
   }
 
-  return 'AI is unavailable right now.';
+  return aiUnavailableMessage();
+}
+
+export function aiOfflineMessage(): string {
+  return "You're offline. AI moves pause until connection returns — tap Retry when back online.";
+}
+
+export function aiRetryLimitMessage(): string {
+  return 'Too many AI retries. Check your connection and try again later.';
+}
+
+export function isOfflineAiError(error: unknown): boolean {
+  return error instanceof AiError && error.code === 'offline';
+}
+
+export function isOfflineAiMessage(message: string | null): boolean {
+  return message === aiOfflineMessage();
 }
 
 export function aiInvalidMoveMessage(): string {

@@ -70,6 +70,7 @@ export function useTutorialLesson(lesson: TutorialLesson, initialStepIndex = 0) 
   const [lastMove, setLastMove] = useState<Position | null>(null);
   const [tipMessage, setTipMessage] = useState<string | null>(null);
   const [humanMoveCount, setHumanMoveCount] = useState(0);
+  const [retryToken, setRetryToken] = useState(0);
   const aiRef = useRef(new MockGoAI({ minDelayMs: 0, maxDelayMs: 0, random: () => 0.5 }));
   const carriedStateRef = useRef<GameState | null>(null);
 
@@ -91,7 +92,7 @@ export function useTutorialLesson(lesson: TutorialLesson, initialStepIndex = 0) 
     setLastMove(null);
     setTipMessage(null);
     setHumanMoveCount(0);
-  }, [currentStep, lesson.id, stepIndex]);
+  }, [currentStep, lesson.id, stepIndex, retryToken]);
 
   useEffect(() => {
     if (!currentStep) {
@@ -350,10 +351,15 @@ export function useTutorialLesson(lesson: TutorialLesson, initialStepIndex = 0) 
     setStepIndex((index) => Math.max(0, index - 1));
   }, []);
 
+  const retryStep = useCallback(() => {
+    carriedStateRef.current = null;
+    setRetryToken((token) => token + 1);
+  }, []);
+
   const restartLesson = useCallback(() => {
     carriedStateRef.current = null;
     setStepIndex(0);
-    setFeedbackState('idle');
+    setRetryToken((token) => token + 1);
   }, []);
 
   const canPlay = Boolean(
@@ -402,6 +408,7 @@ export function useTutorialLesson(lesson: TutorialLesson, initialStepIndex = 0) 
     handleContinue,
     advanceStep,
     goToPreviousStep,
+    retryStep,
     restartLesson,
   };
 }

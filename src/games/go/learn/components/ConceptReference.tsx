@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { getConceptDefinition } from '../../concepts/concepts';
 import type { GoConcept } from '../../concepts/types';
 import { getLearnConceptUrl } from '../conceptAnchors';
+import { getPracticeConceptUrl } from '../../practice/categories';
 import { GoDiagram } from './GoDiagram';
 import { GoSequenceDiagram } from './GoSequenceDiagram';
 import type { DiagramPosition, SequenceStep } from '../types';
@@ -34,6 +35,9 @@ export function ConceptReference({ conceptId, extra, diagram, sequence }: Concep
         />
       ) : null}
       {sequence ? <GoSequenceDiagram steps={sequence} ariaLabel={`${definition.name} sequence`} /> : null}
+      <Link to={getPracticeConceptUrl(conceptId)} className="learn-practice-link">
+        Practice {definition.name} →
+      </Link>
     </article>
   );
 }

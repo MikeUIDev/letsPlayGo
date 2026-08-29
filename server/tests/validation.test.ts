@@ -6,21 +6,22 @@ import {
 } from '../src/validation/aiRequest.js';
 
 describe('AI request validation', () => {
-  it('accepts a valid 9x9 request', () => {
-    const result = validateAiMoveRequest({
-      boardSize: 9,
-      komi: 6.5,
-      colorToMove: 'white',
-      difficulty: 'casual',
-      moves: [{ color: 'black', x: 4, y: 4 }],
-    });
-
-    expect(result.ok).toBe(true);
+  it('accepts 9×9, 13×13, and 19×19 requests', () => {
+    for (const boardSize of [9, 13, 19]) {
+      const result = validateAiMoveRequest({
+        boardSize,
+        komi: boardSize === 19 ? 7.5 : 6.5,
+        colorToMove: 'white',
+        difficulty: 'casual',
+        moves: [],
+      });
+      expect(result.ok).toBe(true);
+    }
   });
 
   it('rejects unsupported board sizes', () => {
     const result = validateAiMoveRequest({
-      boardSize: 19,
+      boardSize: 11,
       komi: 6.5,
       colorToMove: 'black',
       difficulty: 'casual',
@@ -29,7 +30,7 @@ describe('AI request validation', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(validationErrorMessage(result.error)).toContain('9×9');
+      expect(validationErrorMessage(result.error)).toContain('19×19');
     }
   });
 

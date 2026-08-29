@@ -60,6 +60,7 @@ describe('GameConfig', () => {
       size: 13,
       komi: 7.5,
       firstPlayer: 'white',
+      liveCoach: false,
     });
     expect(state.currentPlayer).toBe('white');
   });
@@ -74,6 +75,7 @@ describe('GameConfig', () => {
       komi: 6.5,
       humanColor: 'black',
       difficulty: 'casual',
+      liveCoach: false,
     });
     expect(getStartingPlayer(setup)).toBe('black');
     expect(state.currentPlayer).toBe('black');
@@ -273,6 +275,7 @@ describe('AI scoring and persistence', () => {
       komi: state.config.komi,
       humanColor: 'white',
       difficulty: 'casual',
+      liveCoach: false,
     });
 
     const restored = deserializeSavedGame(serialized.saved);
@@ -327,6 +330,20 @@ describe('AI scoring and persistence', () => {
 
     expect(isAiTurn(restored.state.config, restored.state.currentPlayer)).toBe(true);
     expect(setupToConfig(createAiSetup({ humanColor: 'white' })).mode).toBe('ai');
+  });
+
+  it('does not allow the human to chain moves before the opponent responds', () => {
+    const state = createGameFromSetup(createAiSetup({ humanColor: 'black', size: 9 }));
+    const first = dispatch(state, { type: 'play', position: { row: 2, col: 2 } });
+    if (!first.ok) {
+      throw new Error(`expected first play to succeed: ${first.error}`);
+    }
+
+    const afterFirst = first.state;
+    expect(isHumanTurn(afterFirst.config, afterFirst.currentPlayer)).toBe(false);
+
+    const occupiedReplay = dispatch(afterFirst, { type: 'play', position: { row: 2, col: 2 } });
+    expect(occupiedReplay.ok).toBe(false);
   });
 });
 

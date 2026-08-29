@@ -1,3 +1,5 @@
+import { AiApiClient, ApiTransportError } from '../api/client';
+import { AI_ANALYZE_PATH } from '../api/contracts';
 import {
   AnalysisError,
   analysisTimeoutMessage,
@@ -43,71 +45,55 @@ type ApiAnalysisResponse = {
 };
 
 export interface ApiGoAnalysisOptions {
-  baseUrl?: string;
+  baseUrl: string;
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
 }
 
 export class ApiGoAnalysis implements GoAnalysisService {
-  private readonly baseUrl: string;
-  private readonly timeoutMs: number;
-  private readonly fetchImpl: typeof fetch;
+  private readonly client: AiApiClient;
 
-  constructor(options: ApiGoAnalysisOptions = {}) {
-    this.baseUrl = (options.baseUrl ?? '/api').replace(/\/$/, '');
-    this.timeoutMs = options.timeoutMs ?? 30_000;
-    this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
+  constructor(options: ApiGoAnalysisOptions) {
+    this.client = new AiApiClient({
+      baseUrl: options.baseUrl,
+      timeoutMs: options.timeoutMs ?? 30_000,
+      fetchImpl: options.fetchImpl,
+    });
   }
 
   async analyze(request: AnalysisRequest): Promise<AnalysisResult> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => {
-      controller.abort();
-    }, this.timeoutMs);
-
     try {
-      const response = await this.fetchImpl(`${this.baseUrl}/ai/analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(serializeAnalyzeRequest(request)),
-        signal: controller.signal,
+      const payload = await this.client.postJson<unknown>({
+        path: AI_ANALYZE_PATH,
+        body: serializeAnalyzeRequest(request),
       });
-
-      const responsePayload = (await response.json()) as Record<string, unknown>;
-
-      if (!response.ok) {
-        const message =
-          typeof responsePayload.message === 'string'
-            ? responsePayload.message
-            : analysisUnavailableMessage();
-
-        throw new AnalysisError(
-          response.status === 504 ? 'timeout' : 'unavailable',
-          message,
-        );
-      }
-
-      return parseAnalysisResponse(responsePayload);
+      return parseAnalysisResponse(payload);
     } catch (error) {
-      if (error instanceof AnalysisError) {
-        throw error;
-      }
-
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        throw new AnalysisError('timeout', analysisTimeoutMessage());
-      }
-
-      if (error instanceof SyntaxError) {
-        throw new AnalysisError('invalid_response', analysisUnavailableMessage());
-      }
-
-      throw new AnalysisError('network', analysisUnavailableMessage());
-    } finally {
-      clearTimeout(timeout);
+      throw toAnalysisError(error);
     }
   }
+}
+
+function toAnalysisError(error: unknown): AnalysisError {
+  if (error instanceof AnalysisError) {
+    return error;
+  }
+
+  if (error instanceof ApiTransportError) {
+    const code =
+      error.code === 'invalid_move' ? 'invalid_response' : error.code;
+    return new AnalysisError(code, error.message);
+  }
+
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return new AnalysisError('timeout', analysisTimeoutMessage());
+  }
+
+  if (error instanceof SyntaxError) {
+    return new AnalysisError('invalid_response', analysisUnavailableMessage());
+  }
+
+  return new AnalysisError('network', analysisUnavailableMessage());
 }
 
 export function parseAnalysisResponse(payload: unknown): AnalysisResult {

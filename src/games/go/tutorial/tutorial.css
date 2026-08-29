@@ -1,9 +1,15 @@
 .tutorial-page {
-  padding-bottom: var(--space-7);
+  padding-bottom: max(var(--space-7), var(--safe-bottom));
+  overflow-x: clip;
+}
+
+.tutorial-page--lesson {
+  min-width: 0;
 }
 
 .tutorial-page__inner {
   max-width: 980px;
+  padding-inline: max(var(--space-5), var(--safe-left)) max(var(--space-5), var(--safe-right));
 }
 
 .tutorial-header {
@@ -111,6 +117,11 @@
   min-width: 0;
 }
 
+.tutorial-board-wrap .go-board-frame {
+  width: min(100%, 24rem);
+  margin-inline: auto;
+}
+
 .tutorial-controls {
   display: flex;
   flex-wrap: wrap;
@@ -135,6 +146,8 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tutorial-controls__button:focus-visible {
@@ -219,6 +232,16 @@
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 0.15em;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tutorial-lesson-list__link,
+.tutorial-resume__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.15rem;
 }
 
 .tutorial-resume {
@@ -242,6 +265,20 @@
   color: var(--color-text-muted);
 }
 
+.tutorial-hub-footer__reset {
+  min-height: 2.75rem;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .tutorial-start-card {
   display: block;
   margin-bottom: var(--space-5);
@@ -251,6 +288,8 @@
   background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
   text-decoration: none;
   color: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tutorial-start-card__title {
@@ -271,5 +310,84 @@
 
   .tutorial-board-wrap {
     order: -1;
+    max-width: min(100%, 22.5rem);
+    margin-inline: auto;
+  }
+
+  .tutorial-page--lesson {
+    padding-bottom: calc(6.75rem + var(--safe-bottom));
+  }
+
+  .tutorial-header {
+    padding: var(--space-4) 0 var(--space-3);
+  }
+
+  .tutorial-header__title {
+    font-size: clamp(1.35rem, 5vw, 1.75rem);
+  }
+
+  .tutorial-header__intro,
+  .tutorial-panel__body,
+  .tutorial-panel__progress,
+  .tutorial-panel__hint,
+  .tutorial-panel__tip {
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .tutorial-panel {
+    padding: var(--space-3);
+  }
+
+  .tutorial-panel__title {
+    font-size: 1.05rem;
+  }
+
+  .tutorial-controls--sticky {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 120;
+    margin-top: 0;
+    padding: var(--space-3) max(var(--space-4), var(--safe-left))
+      max(var(--space-3), var(--safe-bottom)) max(var(--space-4), var(--safe-right));
+    border-top: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-bg) 94%, white);
+    box-shadow: 0 -8px 24px rgba(45, 41, 38, 0.08);
+  }
+
+  .tutorial-controls__button {
+    min-height: 2.85rem;
+  }
+
+  .tutorial-controls__primary,
+  .tutorial-controls__secondary {
+    width: 100%;
+  }
+
+  .tutorial-lesson-list__item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tutorial-lesson-list__actions {
+    justify-content: flex-start;
+  }
+
+  .tutorial-hub-footer,
+  .tutorial-complete {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) and (pointer: coarse) {
+  .tutorial-page {
+    --tutorial-board-max: 28rem;
+  }
+
+  .tutorial-board-wrap {
+    max-width: min(100%, var(--tutorial-board-max, 28rem));
   }
 }

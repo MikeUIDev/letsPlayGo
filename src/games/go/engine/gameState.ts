@@ -50,6 +50,7 @@ export function createInitialState(
     size,
     komi: options.komi ?? defaultKomi(size),
     firstPlayer: options.firstPlayer ?? 'black',
+    liveCoach: false,
   });
 }
 
@@ -212,6 +213,8 @@ function applyConfirmScore(state: GameState): GameActionResult {
     deadStones: state.deadStones,
   });
 
+  const reason = state.consecutivePasses >= 2 ? 'double_pass' : 'score';
+
   return {
     ok: true,
     state: {
@@ -219,7 +222,7 @@ function applyConfirmScore(state: GameState): GameActionResult {
       phase: 'ended',
       result: {
         ...scored,
-        reason: 'score',
+        reason,
       },
     },
   };

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { AppSectionLink } from '../../../navigation/AppSectionLink';
 import { GettingStartedSection } from './content/GettingStartedSection';
 import { ConceptsSection, RulesSection } from './content/RulesAndConceptsSections';
 import { AboutSection, StrategySection, UsingAppSection } from './content/StrategyAboutUsingSections';
@@ -8,6 +9,7 @@ import { LearnMobileNav, LearnNav } from './components/LearnNav';
 import { LEARN_LANDING_CARDS } from './sections';
 import { useLearnSectionNavigation, useLearnSectionScrollOnHash } from './useLearnSectionScroll';
 import '../tutorial/tutorial.css';
+import '../practice/practice.css';
 import './learn.css';
 
 export function LearnPage() {
@@ -38,6 +40,13 @@ export function LearnPage() {
           </p>
         </Link>
 
+        <Link to="/practice" className="practice-start-card">
+          <h2 className="practice-start-card__title">Go Puzzles</h2>
+          <p className="practice-start-card__description">
+            Practice capture, Atari, ladders, and more with offline puzzle positions.
+          </p>
+        </Link>
+
         <div className="learn-landing">
           {LEARN_LANDING_CARDS.map((card) => (
             <a
@@ -62,7 +71,7 @@ export function LearnPage() {
             <LearnNav />
           </aside>
 
-          <main className="learn-layout__content">
+          <main className="learn-layout__content" id="main-content" tabIndex={-1}>
             <GettingStartedSection />
             <RulesSection />
             <ConceptsSection />
@@ -73,9 +82,9 @@ export function LearnPage() {
 
             <div className="learn-footer-cta">
               <p>Ready to play?</p>
-              <Link to="/" className="learn-footer-cta__link">
+              <AppSectionLink section="play" className="learn-footer-cta__link">
                 Start a game
-              </Link>
+              </AppSectionLink>
             </div>
           </main>
         </div>

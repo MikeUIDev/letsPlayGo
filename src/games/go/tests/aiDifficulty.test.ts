@@ -40,6 +40,7 @@ describe('AI difficulty', () => {
       size: 9,
       komi: 6.5,
       firstPlayer: 'black',
+      liveCoach: false,
     });
   });
 

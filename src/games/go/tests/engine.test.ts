@@ -174,7 +174,7 @@ describe('scoring phase actions', () => {
     if (confirmed.ok) {
       expect(confirmed.state.phase).toBe('ended');
       expect(confirmed.state.result).not.toBeNull();
-      expect(confirmed.state.result?.reason).toBe('score');
+      expect(confirmed.state.result?.reason).toBe('double_pass');
     }
   });
 });

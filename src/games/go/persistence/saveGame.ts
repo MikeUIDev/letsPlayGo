@@ -1,4 +1,5 @@
-import type { Board, BoardSize, GameConfig, GameState, HistoryEntry, Move, Position } from '../engine/types';
+import type { Board, GameConfig, GameState, HistoryEntry, Move, Position } from '../engine/types';
+import { isBoardSize } from '../engine/boardConfig';
 import { normalizeAiDifficulty } from '../engine/aiDifficulty';
 import type {
   DeserializeResult,
@@ -12,10 +13,13 @@ import type {
   SerializedPosition,
 } from './types';
 import { LEGACY_SAVED_GAME_VERSION, SAVED_GAME_VERSION } from './types';
+import { canResumeGame, shouldPersistActiveGame } from './resumableGame';
+import { validatePersistedState } from './validatePersistedState';
+
+export { canResumeGame, shouldPersistActiveGame } from './resumableGame';
+export { validatePersistedState } from './validatePersistedState';
 
 export const STORAGE_KEY = 'letsplaygo.savedGame';
-
-const BOARD_SIZES: BoardSize[] = [9, 13, 19];
 
 function serializePosition(pos: Position): SerializedPosition {
   return { row: pos.row, col: pos.col };
@@ -37,10 +41,6 @@ function serializeBoard(board: Board): SerializedBoard {
 
 function isStoneColor(value: unknown): value is 'black' | 'white' | null {
   return value === null || value === 'black' || value === 'white';
-}
-
-function isBoardSize(value: unknown): value is BoardSize {
-  return typeof value === 'number' && BOARD_SIZES.includes(value as BoardSize);
 }
 
 function deserializeBoard(value: unknown): Board | null {
@@ -181,6 +181,7 @@ function deserializeConfig(value: unknown): GameConfig | null {
       komi: config.komi,
       humanColor: config.humanColor,
       difficulty: normalizeAiDifficulty(config.difficulty),
+      liveCoach: config.liveCoach ?? false,
     };
   }
 
@@ -191,6 +192,7 @@ function deserializeConfig(value: unknown): GameConfig | null {
       size: config.size,
       komi: config.komi,
       firstPlayer: config.firstPlayer,
+      liveCoach: config.liveCoach ?? false,
     };
   }
 
@@ -201,6 +203,7 @@ function deserializeConfig(value: unknown): GameConfig | null {
     size: legacy.size,
     komi: legacy.komi,
     firstPlayer: legacy.firstPlayer,
+    liveCoach: false,
   };
 }
 
@@ -245,21 +248,40 @@ function deserializeGameState(raw: SerializedGameState, migratedFromVersion?: nu
     .map(deserializePosition)
     .filter((pos): pos is Position => pos !== null);
 
+  const state: GameState = {
+    board,
+    config,
+    currentPlayer: raw.currentPlayer,
+    phase: raw.phase,
+    captures: { black: raw.captures.black, white: raw.captures.white },
+    history,
+    consecutivePasses: raw.consecutivePasses,
+    deadStones,
+    result: raw.result ?? null,
+  };
+
+  if (!validatePersistedState(state)) {
+    return { ok: false, error: 'invalid_state' };
+  }
+
   return {
     ok: true,
     migratedFromVersion,
-    state: {
-      board,
-      config,
-      currentPlayer: raw.currentPlayer,
-      phase: raw.phase,
-      captures: { black: raw.captures.black, white: raw.captures.white },
-      history,
-      consecutivePasses: raw.consecutivePasses,
-      deadStones,
-      result: raw.result ?? null,
-    },
+    state,
   };
+}
+
+function finalizeLoadedState(state: GameState, migratedFromVersion?: number): GameState | null {
+  if (!canResumeGame(state)) {
+    storageAdapter?.removeItem(STORAGE_KEY);
+    return null;
+  }
+
+  if (migratedFromVersion !== undefined) {
+    saveGameToStorage(state);
+  }
+
+  return state;
 }
 
 /** Deserialize a saved-game payload into engine state. */
@@ -320,11 +342,26 @@ export function loadSavedGame(): GameState | null {
       storageAdapter.removeItem(STORAGE_KEY);
       return null;
     }
-    return result.state;
+
+    return finalizeLoadedState(result.state, result.migratedFromVersion);
   } catch {
     storageAdapter.removeItem(STORAGE_KEY);
     return null;
   }
+}
+
+/** Save or clear the active game slot depending on resumable phase. */
+export function persistActiveGame(state: GameState): 'saved' | 'cleared' | 'skipped' {
+  if (!shouldPersistActiveGame(state)) {
+    if (state.phase === 'ended') {
+      clearSavedGame();
+      return 'cleared';
+    }
+    return 'skipped';
+  }
+
+  saveGameToStorage(state);
+  return 'saved';
 }
 
 export function saveGameToStorage(state: GameState): void {

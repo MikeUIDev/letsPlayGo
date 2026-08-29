@@ -1,4 +1,5 @@
 import { getNeighbors, getStone, positionKey, withoutStone } from './board';
+import { getDefaultKomiForSize } from './boardConfig';
 import type { Board, GameResult, Position, StoneColor } from './types';
 
 export interface ScoreOptions {
@@ -198,14 +199,7 @@ export function scoreGame(board: Board, options: ScoreOptions): GameResult {
 
 /** Default komi by board size. Override via GameConfig.komi. */
 export function defaultKomi(size: Board['size']): number {
-  switch (size) {
-    case 9:
-      return 6.5;
-    case 13:
-      return 6.5;
-    case 19:
-      return 7.5;
-  }
+  return getDefaultKomiForSize(size);
 }
 
 /** Provisional score during the scoring phase before final confirmation. */

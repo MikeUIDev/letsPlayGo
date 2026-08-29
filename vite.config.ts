@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // Relative asset URLs so the Capacitor iOS WebView can load the built app.
+  base: './',
 
   server: {
     proxy: {

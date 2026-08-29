@@ -22,7 +22,12 @@ export function formatAnalysisError(error: unknown): string {
   return analysisUnavailableMessage();
 }
 
-export type AnalysisErrorCode = 'unavailable' | 'timeout' | 'invalid_response' | 'network';
+export type AnalysisErrorCode =
+  | 'offline'
+  | 'unavailable'
+  | 'timeout'
+  | 'invalid_response'
+  | 'network';
 
 export class AnalysisError extends Error {
   readonly code: AnalysisErrorCode;

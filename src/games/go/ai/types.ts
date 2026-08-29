@@ -22,6 +22,10 @@ export type GenerateMoveResult =
 
 export type AIStatus = 'idle' | 'thinking' | 'error';
 
+export type GenerateMoveOptions = {
+  signal?: AbortSignal;
+};
+
 export interface MockGoAIOptions {
   minDelayMs?: number;
   maxDelayMs?: number;
@@ -30,5 +34,8 @@ export interface MockGoAIOptions {
 }
 
 export interface GoAI {
-  generateMove(request: GenerateMoveRequest): Promise<GenerateMoveResult>;
+  generateMove(
+    request: GenerateMoveRequest,
+    options?: GenerateMoveOptions,
+  ): Promise<GenerateMoveResult>;
 }

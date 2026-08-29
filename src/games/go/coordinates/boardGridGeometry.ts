@@ -4,6 +4,12 @@ import type { BoardSize } from '../engine/types';
 export const BOARD_GRID_STONE_RATIO = 0.93;
 export const BOARD_GRID_WOOD_PADDING = 0.0035;
 
+/** Minimum cell size so intersections stay finger-friendly on touch devices. */
+export const MIN_TOUCH_CELL_PX = 40;
+
+/** Board sizes that scale to the viewport on touch instead of using a fixed min cell size. */
+export const BOARD_PAN_MIN_SIZE: BoardSize = 13;
+
 export type GridSpan = number;
 
 export function getGridSpan(boardSize: BoardSize): GridSpan {
@@ -69,4 +75,26 @@ export function intersectionAnchorLeft(col: number, boardSize: BoardSize): strin
 
 export function toPercent(value: number): string {
   return `${value}%`;
+}
+
+/** True when the board should scale to the viewport instead of a fixed min cell size (13×13 / 19×19 on touch). */
+export function shouldFitBoardInViewport(boardSize: BoardSize, touchFriendly = true): boolean {
+  return touchFriendly && boardSize >= BOARD_PAN_MIN_SIZE;
+}
+
+/**
+ * Minimum pixel width/height of the square wood board so each cell stays
+ * at least `minCellPx` (independent of viewport).
+ */
+export function minPlayableBoardSidePx(
+  boardSize: BoardSize,
+  minCellPx = MIN_TOUCH_CELL_PX,
+): number {
+  const span = getGridSpan(boardSize);
+  if (span <= 0) {
+    return minCellPx;
+  }
+
+  const inset = boardInsetFraction(boardSize);
+  return (minCellPx * span) / (1 - 2 * inset);
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { SequenceStep } from '../types';
 import { GoDiagram } from './GoDiagram';
+import { useActionCooldown } from '../../tutorial/useActionCooldown';
 
 type GoSequenceDiagramProps = {
   steps: SequenceStep[];
@@ -9,6 +10,7 @@ type GoSequenceDiagramProps = {
 
 export function GoSequenceDiagram({ steps, ariaLabel }: GoSequenceDiagramProps) {
   const [index, setIndex] = useState(0);
+  const runAction = useActionCooldown();
   const step = steps[index];
 
   if (!step) {
@@ -21,7 +23,7 @@ export function GoSequenceDiagram({ steps, ariaLabel }: GoSequenceDiagramProps) 
         <button
           type="button"
           className="learn-sequence__button"
-          onClick={() => setIndex((current) => Math.max(0, current - 1))}
+          onClick={() => runAction(() => setIndex((current) => Math.max(0, current - 1)))}
           disabled={index === 0}
         >
           Previous
@@ -32,7 +34,9 @@ export function GoSequenceDiagram({ steps, ariaLabel }: GoSequenceDiagramProps) 
         <button
           type="button"
           className="learn-sequence__button"
-          onClick={() => setIndex((current) => Math.min(steps.length - 1, current + 1))}
+          onClick={() =>
+            runAction(() => setIndex((current) => Math.min(steps.length - 1, current + 1)))
+          }
           disabled={index >= steps.length - 1}
         >
           Next

@@ -7,6 +7,10 @@ import {
   intersectionLeftWithinBoardPercent,
   intersectionTopPercent,
   intersectionTopWithinBoardPercent,
+  boardInsetFraction,
+  minPlayableBoardSidePx,
+  shouldFitBoardInViewport,
+  MIN_TOUCH_CELL_PX,
 } from '../coordinates/boardGridGeometry';
 
 describe('boardGridGeometry', () => {
@@ -59,5 +63,23 @@ describe('boardGridGeometry', () => {
   it('maps 19x19 outer corners to distinct inset anchors', () => {
     expect(intersectionLeftWithinBoardPercent(0, 19)).not.toBe(intersectionLeftWithinBoardPercent(18, 19));
     expect(intersectionTopWithinBoardPercent(0, 19)).not.toBe(intersectionTopWithinBoardPercent(18, 19));
+  });
+
+  it('fits 13×13 and 19×19 in the viewport when touch-friendly', () => {
+    expect(shouldFitBoardInViewport(9)).toBe(false);
+    expect(shouldFitBoardInViewport(13)).toBe(true);
+    expect(shouldFitBoardInViewport(19)).toBe(true);
+    expect(shouldFitBoardInViewport(19, false)).toBe(false);
+  });
+
+  it('sizes the wood board so cells stay at least the min touch size', () => {
+    const side13 = minPlayableBoardSidePx(13);
+    const side19 = minPlayableBoardSidePx(19);
+    const inset13 = boardInsetFraction(13);
+    const inset19 = boardInsetFraction(19);
+
+    expect(side13 * (1 - 2 * inset13) / 12).toBeGreaterThanOrEqual(MIN_TOUCH_CELL_PX - 0.001);
+    expect(side19 * (1 - 2 * inset19) / 18).toBeGreaterThanOrEqual(MIN_TOUCH_CELL_PX - 0.001);
+    expect(side19).toBeGreaterThan(side13);
   });
 });

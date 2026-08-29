@@ -1,11 +1,9 @@
 import type { VariationMove } from '../analysis/types';
 import { positionsEqual } from '../engine/board';
-import { getLegalMoves } from '../engine/legalMoves';
-import { violatesKo } from '../engine/ko';
 import type { GameState, Move, Position, StoneColor } from '../engine/types';
 import { OPPONENT } from '../engine/types';
-import { createSimulationState, tryPlay } from './simulate';
-import { TACTICAL_SEARCH_LIMITS, type SnapbackReadResult } from './types';
+import { readSnapbackOpportunityLocal } from './snapbackLocal';
+import type { SnapbackReadResult } from './types';
 
 function opponentLabel(color: StoneColor): string {
   return color === 'black' ? 'White' : 'Black';
@@ -100,63 +98,8 @@ export function readSnapbackOpportunity(
   afterState: GameState,
   sacrificeMove: Move,
 ): SnapbackReadResult | null {
-  if (sacrificeMove.type !== 'play') {
-    return null;
-  }
-
-  const sacrificer = sacrificeMove.color;
-  const opponent = OPPONENT[sacrificer];
-  const sacrificePoint = sacrificeMove.position;
-  const state = createSimulationState(afterState.board, opponent, afterState.config);
-
-  for (const capturePoint of getLegalMoves(state)) {
-    const captureState = tryPlay(state, capturePoint);
-    if (!captureState) {
-      continue;
-    }
-
-    const captureMove = captureState.history[captureState.history.length - 1]?.move;
-    if (
-      captureMove?.type !== 'play' ||
-      !(captureMove.captured ?? []).some((stone) => positionsEqual(stone, sacrificePoint))
-    ) {
-      continue;
-    }
-
-    if (captureState.currentPlayer !== sacrificer) {
-      continue;
-    }
-
-    if (violatesKo(captureState, capturePoint)) {
-      continue;
-    }
-
-    const recaptureState = tryPlay(captureState, capturePoint);
-    if (!recaptureState) {
-      continue;
-    }
-
-    const recaptureMove = recaptureState.history[recaptureState.history.length - 1]?.move;
-    const recaptureCount = recaptureMove?.type === 'play' ? recaptureMove.captured?.length ?? 0 : 0;
-    if (recaptureCount <= 1) {
-      continue;
-    }
-
-    return {
-      outcome: 'success',
-      sacrificedCount: 1,
-      recaptureCount,
-      sequence: [
-        { color: sacrificer, position: sacrificePoint },
-        { color: opponent, position: capturePoint },
-        { color: sacrificer, position: capturePoint },
-      ].slice(0, TACTICAL_SEARCH_LIMITS.snapbackMaxDepth),
-      sacrificePoint,
-      recapturePoint: capturePoint,
-    };
-  }
-
-  return null;
+  const local = readSnapbackOpportunityLocal(afterState, sacrificeMove);
+  return local.outcome === 'success' ? local : null;
 }
 
 export function buildSnapbackTeachingLine(

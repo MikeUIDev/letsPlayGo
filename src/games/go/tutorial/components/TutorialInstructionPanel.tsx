@@ -15,6 +15,17 @@ type TutorialInstructionPanelProps = {
   hintMessage: string | null;
 };
 
+function tutorialFeedbackPrefix(state: TutorialFeedbackState): string {
+  switch (state) {
+    case 'correct':
+      return 'Correct: ';
+    case 'try-again':
+      return 'Try again: ';
+    default:
+      return '';
+  }
+}
+
 export function TutorialInstructionPanel({
   step,
   lessonTitle,
@@ -73,7 +84,7 @@ export function TutorialInstructionPanel({
           role="status"
           aria-live="polite"
         >
-          {feedbackState === 'correct' ? '✓ ' : ''}
+          {tutorialFeedbackPrefix(feedbackState)}
           {feedbackMessage}
         </p>
       ) : null}

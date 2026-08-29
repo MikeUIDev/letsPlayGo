@@ -1,4 +1,5 @@
 import type { AIDifficulty } from '../ai/difficulty.js';
+import type { SupportedAiBoardSize } from '../validation/boardSizes.js';
 
 export type StoneColor = 'black' | 'white';
 
@@ -12,7 +13,7 @@ export type ApiMove =
   | { color: StoneColor; x: number; y: number };
 
 export type AiMoveRequest = {
-  boardSize: 9;
+  boardSize: SupportedAiBoardSize;
   komi: number;
   colorToMove: StoneColor;
   difficulty: AIDifficulty;

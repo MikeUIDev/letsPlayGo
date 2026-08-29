@@ -1,5 +1,6 @@
 import { type MouseEvent } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { AppSectionLink } from '../../../../navigation/AppSectionLink';
 import { LEARN_NAV } from '../sections';
 import { useLearnSectionNavigation } from '../useLearnSectionScroll';
 
@@ -45,9 +46,9 @@ export function LearnNav() {
           </li>
         ))}
       </ul>
-      <Link to="/" className="learn-nav__play-link">
+      <AppSectionLink section="play" className="learn-nav__play-link">
         Back to Play
-      </Link>
+      </AppSectionLink>
     </nav>
   );
 }

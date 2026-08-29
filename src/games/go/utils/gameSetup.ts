@@ -1,25 +1,23 @@
+import {
+  AI_SUPPORTED_BOARD_SIZES,
+  BOARD_SIZE_OPTIONS,
+  getDefaultKomiForSize,
+  isAiSupportedBoardSize as isAiBoardSize,
+} from '../engine/boardConfig';
 import { configToSetup } from '../engine/gameConfig';
 import { DEFAULT_AI_DIFFICULTY } from '../engine/aiDifficulty';
 import type { BoardSize, GameConfig, NewGameSetup, NewGameSetupAI, NewGameSetupLocal } from '../engine/types';
 import { DEFAULT_KOMI } from '../engine/types';
-import { defaultKomi } from '../engine/scoring';
 
 export function getDefaultKomi(size: BoardSize): number {
-  return defaultKomi(size);
+  return getDefaultKomiForSize(size);
 }
 
-export const AI_SUPPORTED_BOARD_SIZES = [9] as const;
-export type AiSupportedBoardSize = (typeof AI_SUPPORTED_BOARD_SIZES)[number];
+export { AI_SUPPORTED_BOARD_SIZES, BOARD_SIZE_OPTIONS };
 
-export function isAiSupportedBoardSize(size: number): size is AiSupportedBoardSize {
-  return (AI_SUPPORTED_BOARD_SIZES as readonly number[]).includes(size);
+export function isAiSupportedBoardSize(size: number): boolean {
+  return isAiBoardSize(size);
 }
-
-export const BOARD_SIZE_OPTIONS = [
-  { size: 9 as const, label: '9×9', descriptor: 'Quick' },
-  { size: 13 as const, label: '13×13', descriptor: 'Medium' },
-  { size: 19 as const, label: '19×19', descriptor: 'Standard' },
-];
 
 /** Parse komi from a form input string. Returns null when invalid. */
 export function parseKomiInput(value: string): number | null {
@@ -69,6 +67,7 @@ export function createLocalSetup(
     size,
     komi: overrides.komi ?? getDefaultKomi(size),
     firstPlayer: 'black',
+    liveCoach: false,
     ...overrides,
   };
 }
@@ -83,6 +82,7 @@ export function createAiSetup(
     komi: overrides.komi ?? getDefaultKomi(size),
     humanColor: 'black',
     difficulty: DEFAULT_AI_DIFFICULTY,
+    liveCoach: false,
     ...overrides,
   };
 }

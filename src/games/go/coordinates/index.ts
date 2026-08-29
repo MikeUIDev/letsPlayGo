@@ -12,6 +12,8 @@ export {
 export {
   BOARD_GRID_STONE_RATIO,
   BOARD_GRID_WOOD_PADDING,
+  BOARD_PAN_MIN_SIZE,
+  MIN_TOUCH_CELL_PX,
   boardInsetFraction,
   getGridSpan,
   intersectionAnchorLeft,
@@ -20,6 +22,8 @@ export {
   intersectionLeftWithinBoardPercent,
   intersectionTopPercent,
   intersectionTopWithinBoardPercent,
+  minPlayableBoardSidePx,
+  shouldFitBoardInViewport,
 } from './boardGridGeometry';
 
 export {

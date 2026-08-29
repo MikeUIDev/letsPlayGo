@@ -15,7 +15,7 @@ export function TutorialHubPage() {
   }, [progress.lastLessonId]);
 
   return (
-    <div className="tutorial-page">
+    <div className="tutorial-page" id="main-content" tabIndex={-1}>
       <div className="go-shell tutorial-page__inner">
         <header className="tutorial-header">
           <p className="tutorial-header__eyebrow">Interactive Tutorial</p>

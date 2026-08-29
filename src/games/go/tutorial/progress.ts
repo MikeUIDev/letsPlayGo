@@ -1,4 +1,5 @@
 import type { TutorialProgress } from './types';
+import { readLocalStorageItem, writeLocalStorageItem } from '../persistence/localStorageAccess';
 
 const STORAGE_KEY = 'letsplaygo.tutorial.progress';
 
@@ -9,12 +10,12 @@ export const DEFAULT_TUTORIAL_PROGRESS: TutorialProgress = {
 };
 
 export function loadTutorialProgress(): TutorialProgress {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return { ...DEFAULT_TUTORIAL_PROGRESS };
-    }
+  const raw = readLocalStorageItem(STORAGE_KEY);
+  if (!raw) {
+    return { ...DEFAULT_TUTORIAL_PROGRESS };
+  }
 
+  try {
     const parsed = JSON.parse(raw) as Partial<TutorialProgress>;
     return {
       completedLessonIds: Array.isArray(parsed.completedLessonIds)
@@ -29,11 +30,7 @@ export function loadTutorialProgress(): TutorialProgress {
 }
 
 export function saveTutorialProgress(progress: TutorialProgress): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-  } catch {
-    // Ignore storage failures.
-  }
+  writeLocalStorageItem(STORAGE_KEY, JSON.stringify(progress));
 }
 
 export function markLessonComplete(progress: TutorialProgress, lessonId: string): TutorialProgress {

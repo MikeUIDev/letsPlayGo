@@ -7,10 +7,12 @@ import type { GoAI, AIStatus } from '../ai/types';
 import { isHumanTurn } from '../engine/gameConfig';
 import { positionKey } from '../engine/board';
 import {
+  canResumeGame,
   clearSavedGame,
   loadSavedGame,
-  saveGameToStorage,
+  persistActiveGame,
 } from '../persistence/saveGame';
+import { registerAppLifecycle } from '../../../native/appLifecycle';
 import { exportSgf } from '../sgf/exportSgf';
 import { importSgf } from '../sgf/importSgf';
 import { sgfErrorMessage } from '../sgf/types';
@@ -26,14 +28,20 @@ import {
   type ScoreBreakdown,
   type TerritoryOwner,
 } from '../engine/scoring';
-import type { GameAction, GameState, NewGameSetup, Position } from '../engine/types';
+import type { GameAction, GameState, NewGameSetup, Position, GamePhase } from '../engine/types';
 import { DEFAULT_NEW_GAME_SETUP } from '../engine/types';
 import { downloadTextFile } from '../utils/download';
 import { formatEngineError } from '../utils/errorMessages';
 import { setupFromConfig } from '../utils/gameSetup';
+import {
+  notifyGameOver,
+  notifyGameplayMove,
+  notifyIllegalMove,
+} from '../feedback';
 import { useGoAI } from './useGoAI';
+import { useDelayedAiThinkingIndicator } from './useDelayedAiThinkingIndicator';
 
-export type AppView = 'resume' | 'setup' | 'game';
+export type AppView = 'setup' | 'game';
 
 export interface UseGoGameOptions {
   ai?: GoAI;
@@ -45,6 +53,7 @@ export interface UseGoGameResult {
   setupDraft: NewGameSetup;
   canCancelSetup: boolean;
   resumeSnapshot: GameState | null;
+  displaySavedGame: GameState | null;
   state: GameState | null;
   moves: ReturnType<typeof getMoveList>;
   error: string | null;
@@ -57,6 +66,8 @@ export interface UseGoGameResult {
   isEnded: boolean;
   isReviewing: boolean;
   aiStatus: AIStatus;
+  isAiThinking: boolean;
+  showAiThinkingIndicator: boolean;
   analysis: GoAnalysisService;
   scoreBreakdown: ScoreBreakdown | null;
   provisionalResult: ReturnType<typeof calculateProvisionalScore> | null;
@@ -71,18 +82,22 @@ export interface UseGoGameResult {
   openSetupFromResume: () => void;
   cancelSetup: () => void;
   resumeSavedGame: () => void;
+  continueGame: () => void;
   discardSavedGame: () => void;
   exportCurrentSgf: () => void;
   importSgfFile: (content: string) => void;
   enterReview: () => void;
   exitReview: () => void;
+  clearError: () => void;
+  retryAi: () => void;
 }
 
 export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
   const ai = useMemo(() => options.ai ?? createGoAI(), [options.ai]);
   const analysis = useMemo(() => options.analysis ?? createGoAnalysis(), [options.analysis]);
   const initialSaved = useMemo(() => loadSavedGame(), []);
-  const [view, setView] = useState<AppView>(initialSaved ? 'resume' : 'setup');
+  const [view, setView] = useState<AppView>('setup');
+  const viewRef = useRef<AppView>('setup');
   const [resumeSnapshot, setResumeSnapshot] = useState<GameState | null>(initialSaved);
   const [setupDraft, setSetupDraft] = useState<NewGameSetup>(
     initialSaved ? setupFromConfig(initialSaved.config) : DEFAULT_NEW_GAME_SETUP,
@@ -95,28 +110,83 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
   const [error, setError] = useState<string | null>(null);
   const [isReviewing, setIsReviewing] = useState(false);
   const stateRef = useRef<GameState | null>(null);
+  const aiStatusRef = useRef<AIStatus>('idle');
+  const actionInFlightRef = useRef(false);
+  const prevPhaseRef = useRef<GamePhase | null>(null);
+  const wasBackgroundedRef = useRef(false);
+  const lifecycleRef = useRef({
+    cancelPendingAi: () => {},
+    resumeAiAfterBackground: () => {},
+  });
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
   useEffect(() => {
+    if (state?.phase === 'ended' && prevPhaseRef.current !== 'ended') {
+      notifyGameOver();
+    }
+    prevPhaseRef.current = state?.phase ?? null;
+  }, [state?.phase]);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
+
+  useEffect(() => {
     if (view === 'game' && state) {
-      saveGameToStorage(state);
+      persistActiveGame(state);
     }
   }, [state, view]);
 
   const applyEngineState = useCallback((nextState: GameState) => {
+    notifyGameplayMove(stateRef.current, nextState);
+    stateRef.current = nextState;
     setState(nextState);
   }, []);
 
-  const { status: aiStatus, cancelPending: cancelPendingAi } = useGoAI({
+  const { status: aiStatus, cancelPending: cancelPendingAi, resumeAfterBackground: resumeAiAfterBackground, retry: retryAi } = useGoAI({
     ai,
     state,
     enabled: view === 'game',
     onStateChange: applyEngineState,
     onError: setError,
   });
+
+  lifecycleRef.current = {
+    cancelPendingAi,
+    resumeAiAfterBackground,
+  };
+
+  useEffect(() => {
+    return registerAppLifecycle({
+      onBackground: () => {
+        if (viewRef.current === 'game' && stateRef.current) {
+          persistActiveGame(stateRef.current);
+        }
+
+        wasBackgroundedRef.current = true;
+        lifecycleRef.current.cancelPendingAi();
+      },
+      onForeground: () => {
+        if (!wasBackgroundedRef.current) {
+          return;
+        }
+
+        wasBackgroundedRef.current = false;
+        lifecycleRef.current.resumeAiAfterBackground();
+      },
+    });
+  }, []);
+
+  useEffect(() => {
+    actionInFlightRef.current = false;
+  }, [state]);
+
+  useEffect(() => {
+    aiStatusRef.current = aiStatus;
+  }, [aiStatus]);
 
   const dispatchAction = useCallback(
     (action: GameAction) => {
@@ -135,12 +205,26 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
         return;
       }
 
+      if (aiStatusRef.current === 'thinking') {
+        return;
+      }
+
+      if (actionInFlightRef.current) {
+        return;
+      }
+
+      actionInFlightRef.current = true;
+
       setState((current) => {
         if (!current) return current;
         const result = dispatch(current, action);
         if (result.ok) {
           setError(null);
+          notifyGameplayMove(current, result.state);
           return result.state;
+        }
+        if (action.type === 'play') {
+          notifyIllegalMove();
         }
         setError(formatEngineError(result.error));
         return current;
@@ -149,17 +233,26 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     [cancelPendingAi],
   );
 
-  const loadGameState = useCallback((nextState: GameState) => {
-    const setup = setupFromConfig(nextState.config);
-    setState(nextState);
-    setLastSetup(setup);
-    setSetupDraft(setup);
-    setResumeSnapshot(null);
-    setSavedGameState(null);
-    setView('game');
+  const clearError = useCallback(() => {
     setError(null);
-    saveGameToStorage(nextState);
   }, []);
+
+  const loadGameState = useCallback(
+    (nextState: GameState) => {
+      cancelPendingAi();
+      const setup = setupFromConfig(nextState.config);
+      stateRef.current = nextState;
+      setState(nextState);
+      setLastSetup(setup);
+      setSetupDraft(setup);
+      setResumeSnapshot(null);
+      setSavedGameState(null);
+      setView('game');
+      setError(null);
+      persistActiveGame(nextState);
+    },
+    [cancelPendingAi],
+  );
 
   const openSetup = useCallback(() => {
     const current = stateRef.current;
@@ -190,19 +283,18 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     setSavedGameState(null);
     if (stateRef.current) {
       setView('game');
-    } else if (resumeSnapshot) {
-      setView('resume');
     } else {
       setView('setup');
     }
     setError(null);
-  }, [resumeSnapshot]);
+  }, []);
 
   const startGame = useCallback(
     (setup: NewGameSetup) => {
       cancelPendingAi();
       setIsReviewing(false);
       const nextState = createGameFromSetup(setup);
+      stateRef.current = nextState;
       setState(nextState);
       setLastSetup(setup);
       setSetupDraft(setup);
@@ -210,8 +302,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
       setSavedGameState(null);
       setView('game');
       setError(null);
-      clearSavedGame();
-      saveGameToStorage(nextState);
+      persistActiveGame(nextState);
     },
     [cancelPendingAi],
   );
@@ -221,12 +312,29 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     loadGameState(resumeSnapshot);
   }, [loadGameState, resumeSnapshot]);
 
+  const continueGame = useCallback(() => {
+    const current = stateRef.current;
+    if (current) {
+      setView('game');
+      setError(null);
+      return;
+    }
+
+    if (resumeSnapshot) {
+      loadGameState(resumeSnapshot);
+    }
+  }, [loadGameState, resumeSnapshot]);
+
   const discardSavedGame = useCallback(() => {
+    cancelPendingAi();
     clearSavedGame();
     setResumeSnapshot(null);
+    stateRef.current = null;
+    setState(null);
+    setIsReviewing(false);
     setView('setup');
     setError(null);
-  }, []);
+  }, [cancelPendingAi]);
 
   const updateSetupDraft = useCallback((setup: NewGameSetup) => {
     setSetupDraft(setup);
@@ -270,38 +378,49 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
 
   const humanCanInteract =
     Boolean(state && state.phase === 'playing' && isHumanTurn(state.config, state.currentPlayer));
-  const canPlay = humanCanInteract && aiStatus !== 'thinking';
-  const canAct = canPlay;
+  const isAiThinking = aiStatus === 'thinking';
+  const showAiThinkingIndicator = useDelayedAiThinkingIndicator(isAiThinking);
+  const canPlay = humanCanInteract && !isAiThinking;
+  const canAct = humanCanInteract && !isAiThinking;
 
-  const play = useCallback(
-    (position: Position) => {
-      if (!canPlay) return;
-      setState((current) => {
-        if (!current || current.phase !== 'playing') return current;
-        if (!isHumanTurn(current.config, current.currentPlayer)) return current;
-        const result = dispatch(current, { type: 'play', position });
-        if (result.ok) {
-          setError(null);
-          return result.state;
-        }
-        setError(formatEngineError(result.error));
-        return current;
-      });
-    },
-    [canPlay],
-  );
+  const play = useCallback((position: Position) => {
+    const current = stateRef.current;
+    if (!current || current.phase !== 'playing') return;
+    if (!isHumanTurn(current.config, current.currentPlayer)) return;
+    if (aiStatusRef.current === 'thinking') return;
+    if (actionInFlightRef.current) return;
+
+    actionInFlightRef.current = true;
+
+    const result = dispatch(current, { type: 'play', position });
+    if (result.ok) {
+      setError(null);
+      notifyGameplayMove(current, result.state);
+      stateRef.current = result.state;
+      setState(result.state);
+    } else {
+      notifyIllegalMove();
+      setError(formatEngineError(result.error));
+      actionInFlightRef.current = false;
+    }
+  }, []);
 
   const markDead = useCallback((position: Position) => {
-    setState((current) => {
-      if (!current || current.phase !== 'scoring') return current;
-      const result = dispatch(current, { type: 'markDead', position });
-      if (result.ok) {
-        setError(null);
-        return result.state;
-      }
+    const current = stateRef.current;
+    if (!current || current.phase !== 'scoring') return;
+    if (actionInFlightRef.current) return;
+
+    actionInFlightRef.current = true;
+
+    const result = dispatch(current, { type: 'markDead', position });
+    if (result.ok) {
+      setError(null);
+      stateRef.current = result.state;
+      setState(result.state);
+    } else {
       setError(formatEngineError(result.error));
-      return current;
-    });
+      actionInFlightRef.current = false;
+    }
   }, []);
 
   const scoreBreakdown = useMemo(() => {
@@ -326,11 +445,17 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     return new Set(state.deadStones.map(positionKey));
   }, [state]);
 
+  const displaySavedGame = useMemo(() => {
+    const candidate = state ?? resumeSnapshot;
+    return candidate && canResumeGame(candidate) ? candidate : null;
+  }, [resumeSnapshot, state]);
+
   return {
     view,
     setupDraft,
     canCancelSetup: savedGameState !== null,
     resumeSnapshot,
+    displaySavedGame,
     state,
     moves: state ? getMoveList(state) : [],
     error,
@@ -343,6 +468,8 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     isEnded: state?.phase === 'ended',
     isReviewing,
     aiStatus,
+    isAiThinking,
+    showAiThinkingIndicator,
     analysis,
     scoreBreakdown,
     provisionalResult,
@@ -357,10 +484,13 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     openSetupFromResume,
     cancelSetup,
     resumeSavedGame,
+    continueGame,
     discardSavedGame,
     exportCurrentSgf,
     importSgfFile,
     enterReview,
     exitReview,
+    clearError,
+    retryAi,
   };
 }

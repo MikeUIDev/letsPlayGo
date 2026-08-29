@@ -18,7 +18,10 @@ export class MockGoAI implements GoAI {
     this.random = options.random ?? Math.random;
   }
 
-  async generateMove(request: GenerateMoveRequest): Promise<GenerateMoveResult> {
+  async generateMove(
+    request: GenerateMoveRequest,
+    _options?: import('./types').GenerateMoveOptions,
+  ): Promise<GenerateMoveResult> {
     if (this.maxDelayMs > 0) {
       const span = Math.max(0, this.maxDelayMs - this.minDelayMs);
       const waitMs = this.minDelayMs + Math.floor(this.random() * (span + 1));

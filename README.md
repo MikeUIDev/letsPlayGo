@@ -8,6 +8,7 @@ Local Go (Weiqi) web game built with React, Vite, and TypeScript, with optional 
 - Pure TypeScript rules engine (captures, ko, suicide prevention, undo, Chinese scoring)
 - Play vs AI on 9×9 via a separate Node/KataGo backend
 - Save/resume and SGF import/export
+- Capacitor iOS shell (`npm run ios`)
 
 ## Development
 
@@ -15,6 +16,7 @@ Local Go (Weiqi) web game built with React, Vite, and TypeScript, with optional 
 
 ```bash
 npm install
+cp .env.example .env   # optional overrides
 npm run dev
 npm test
 npm run build
@@ -22,10 +24,17 @@ npm run build
 
 Copy `.env.example` to `.env` and choose an AI provider:
 
-- `VITE_AI_PROVIDER=mock` — default, uses in-browser MockGoAI (no backend)
-- `VITE_AI_PROVIDER=api` — calls `/api` (proxied to the backend in dev)
+- `VITE_AI_PROVIDER=mock` — default, in-browser MockGoAI (no backend)
+- `VITE_AI_PROVIDER=api` — HTTP AI via `/api` (Vite dev proxy → local Node/KataGo)
 
-### Backend (KataGo AI)
+Optional:
+
+- `VITE_AI_API_BASE_URL` — remote HTTPS API (required for production/Capacitor builds when using `api`)
+- `VITE_AI_TIMEOUT_MS` — client timeout in ms (default 30000)
+
+See [docs/AI.md](docs/AI.md) for the full AI architecture.
+
+### Backend (KataGo AI — local dev)
 
 ```bash
 cd server
@@ -39,6 +48,14 @@ With both running:
 
 - Frontend: `http://localhost:5173`
 - Backend health: `http://localhost:3001/api/health`
+
+### iOS (Capacitor)
+
+```bash
+npm run ios
+```
+
+For AI games on device, build with `VITE_AI_PROVIDER=api` and `VITE_AI_API_BASE_URL` pointing to a **remote HTTPS** API (not localhost). Mock AI works without any backend.
 
 ## KataGo setup (local)
 
@@ -57,6 +74,6 @@ Do not commit KataGo binaries or model files — they are gitignored.
 ## Tech Stack
 
 - React + TypeScript + Vite
-- Node + TypeScript AI backend
+- Node + TypeScript AI backend (local dev)
 - KataGo via long-running JSON Analysis Engine process
 - Vitest for unit tests

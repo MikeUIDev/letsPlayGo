@@ -22,20 +22,22 @@ const sampleMoveInfos = [
 ];
 
 describe('analyze request validation', () => {
-  it('validates supported board size and moves', () => {
-    const result = validateAnalyzeRequest({
-      boardSize: 9,
-      komi: 6.5,
-      colorToMove: 'black',
-      moves: [{ color: 'black', x: 4, y: 4 }],
-    });
+  it('validates supported board sizes and moves', () => {
+    for (const boardSize of [9, 13, 19]) {
+      const result = validateAnalyzeRequest({
+        boardSize,
+        komi: boardSize === 19 ? 7.5 : 6.5,
+        colorToMove: 'black',
+        moves: boardSize === 9 ? [{ color: 'black', x: 4, y: 4 }] : [],
+      });
 
-    expect(result.ok).toBe(true);
+      expect(result.ok).toBe(true);
+    }
   });
 
   it('rejects unsupported board sizes', () => {
     const result = validateAnalyzeRequest({
-      boardSize: 13,
+      boardSize: 11,
       komi: 6.5,
       colorToMove: 'black',
       moves: [],
@@ -43,7 +45,7 @@ describe('analyze request validation', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(analyzeValidationErrorMessage(result.error)).toContain('9×9');
+      expect(analyzeValidationErrorMessage(result.error)).toContain('19×19');
     }
   });
 
