@@ -16,9 +16,31 @@ export type TouchPlacementTapAction =
   | { type: 'select'; position: Position }
   | { type: 'confirm'; position: Position };
 
+/** True when the primary input is touch (phones/tablets). Mouse/trackpad uses direct intersection clicks. */
+export function prefersCoarsePointer(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const fine = window.matchMedia('(pointer: fine)').matches;
+  // Touchscreen laptops report both coarse and fine — keep mouse-friendly intersection clicks.
+  return coarse && !fine;
+}
+
+export type TouchPlacementOptions = {
+  /** Override coarse-pointer detection (tests). Defaults to `prefersCoarsePointer()`. */
+  coarsePointer?: boolean;
+};
+
 /** True when this board uses geometry-based touch placement instead of per-intersection targets. */
-export function shouldUseTouchPlacement(boardSize: BoardSize, touchFriendly = true): boolean {
-  return touchFriendly && boardSize >= TOUCH_PLACEMENT_MIN_SIZE;
+export function shouldUseTouchPlacement(
+  boardSize: BoardSize,
+  touchFriendly = true,
+  options: TouchPlacementOptions = {},
+): boolean {
+  const coarsePointer = options.coarsePointer ?? prefersCoarsePointer();
+  return touchFriendly && boardSize >= TOUCH_PLACEMENT_MIN_SIZE && coarsePointer;
 }
 
 /**

@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react';
 import {
   PRACTICE_CATEGORIES,
   difficultyLabel,
-  getPracticeCategoryUrl,
 } from './categories';
 import {
   loadPracticeProgress,
@@ -30,70 +29,92 @@ export function PracticeHubPage() {
     [categoryFilter, progress.solvedPuzzleIds],
   );
 
+  const categories = categoryFilter
+    ? PRACTICE_CATEGORIES.filter((category) => category.id === categoryFilter)
+    : PRACTICE_CATEGORIES;
+
   return (
     <div className="practice-page" id="main-content" tabIndex={-1}>
       <div className="go-shell practice-page__inner">
-        <header className="practice-header">
+        <header className="practice-header practice-header--hub">
           <p className="practice-header__eyebrow">Practice</p>
           <h1 className="practice-header__title">Go Puzzles</h1>
-          <p className="practice-header__intro">
-            Solve short positions offline. {solvedCount} / {totalCount} solved.
+          <p className="practice-header__progress" aria-live="polite">
+            {solvedCount} of {totalCount} solved
           </p>
         </header>
 
         {nextPuzzle ? (
-          <div className="practice-resume">
-            <p>
-              Continue with: <strong>{nextPuzzle.title}</strong> ({difficultyLabel(nextPuzzle.difficulty)})
-            </p>
-            <Link to={`/practice/${nextPuzzle.id}`} className="practice-resume__link">
-              Start next unsolved puzzle
-            </Link>
-          </div>
+          <Link to={`/practice/${nextPuzzle.id}`} className="practice-continue">
+            <span className="practice-continue__action">Continue</span>
+            <span className="practice-continue__title">{nextPuzzle.title}</span>
+            <span className="practice-continue__meta">{difficultyLabel(nextPuzzle.difficulty)}</span>
+          </Link>
         ) : (
-          <div className="practice-resume practice-resume--complete">
-            <p>You solved every starter puzzle. Replay any category below.</p>
+          <div className="practice-continue practice-continue--complete" role="status">
+            <span className="practice-continue__action">All solved</span>
+            <span className="practice-continue__title">Replay any puzzle below</span>
           </div>
         )}
 
+        {categoryFilter ? (
+          <p className="practice-filter-bar">
+            <Link to="/practice" className="practice-filter-bar__link">
+              ← All categories
+            </Link>
+          </p>
+        ) : null}
+
         <div className="practice-category-list">
-          {(categoryFilter
-            ? PRACTICE_CATEGORIES.filter((category) => category.id === categoryFilter)
-            : PRACTICE_CATEGORIES
-          ).map((category) => {
+          {categories.map((category) => {
             const puzzles = getPuzzlesByCategory(category.id);
-            const solved = puzzles.filter((puzzle) => progress.solvedPuzzleIds.includes(puzzle.id)).length;
+            const solved = puzzles.filter((puzzle) =>
+              progress.solvedPuzzleIds.includes(puzzle.id),
+            ).length;
+
             return (
-              <section key={category.id} className="practice-category-card">
+              <section key={category.id} className="practice-category-card" aria-labelledby={`practice-cat-${category.id}`}>
                 <div className="practice-category-card__header">
-                  <h2 className="practice-category-card__title">{category.label}</h2>
+                  <h2 id={`practice-cat-${category.id}`} className="practice-category-card__title">
+                    {category.label}
+                  </h2>
                   <p className="practice-category-card__summary">
-                    {puzzles.length} puzzles · {solved} solved
+                    {solved} of {puzzles.length} solved
                   </p>
-                  <p className="practice-category-card__description">{category.description}</p>
                 </div>
                 <ul className="practice-puzzle-list">
                   {puzzles.map((puzzle) => {
                     const isSolved = progress.solvedPuzzleIds.includes(puzzle.id);
                     return (
-                      <li key={puzzle.id} className="practice-puzzle-list__item">
-                        <div>
+                      <li
+                        key={puzzle.id}
+                        className={`practice-puzzle-list__item${isSolved ? ' practice-puzzle-list__item--solved' : ''}`}
+                      >
+                        <div className="practice-puzzle-list__main">
                           <p className="practice-puzzle-list__title">{puzzle.title}</p>
-                          <p className="practice-puzzle-list__meta">{difficultyLabel(puzzle.difficulty)}</p>
+                          {isSolved ? (
+                            <p className="practice-puzzle-list__status">
+                              <span className="practice-puzzle-list__check" aria-hidden="true">
+                                ✓
+                              </span>
+                              Solved
+                            </p>
+                          ) : (
+                            <p className="practice-puzzle-list__meta">
+                              {difficultyLabel(puzzle.difficulty)}
+                            </p>
+                          )}
                         </div>
-                        <div className="practice-puzzle-list__actions">
-                          {isSolved ? <span className="practice-puzzle-list__badge">Solved</span> : null}
-                          <Link to={`/practice/${puzzle.id}`} className="practice-puzzle-list__link">
-                            {isSolved ? 'Replay' : 'Solve'}
-                          </Link>
-                        </div>
+                        <Link
+                          to={`/practice/${puzzle.id}`}
+                          className={`practice-puzzle-list__link${isSolved ? '' : ' practice-puzzle-list__link--start'}`}
+                        >
+                          {isSolved ? 'Replay' : 'Start'}
+                        </Link>
                       </li>
                     );
                   })}
                 </ul>
-                <Link to={getPracticeCategoryUrl(category.id)} className="practice-category-card__browse">
-                  Browse {category.label}
-                </Link>
               </section>
             );
           })}

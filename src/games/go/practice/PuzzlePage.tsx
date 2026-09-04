@@ -79,28 +79,28 @@ function PuzzleRunner({
             stepIndex={stepIndex}
             totalSteps={puzzle.solution.length}
             isSolved={isSolved}
+            actions={
+              <PuzzleControls
+                canHint={!isSolved && puzzle.hints.length > 0}
+                canRetry={feedbackState === 'try-again'}
+                canNext={isSolved}
+                onHint={showHint}
+                onRetry={retryStep}
+                onReset={resetSession}
+                onNext={() => {
+                  if (nextPuzzle) {
+                    const nextPath = `/practice/${nextPuzzle.id}`;
+                    if (location.pathname !== nextPath) {
+                      navigate(nextPath, { replace: true });
+                    }
+                  } else {
+                    onExit();
+                  }
+                }}
+              />
+            }
           />
         </div>
-
-        <PuzzleControls
-          canHint={!isSolved && puzzle.hints.length > 0}
-          canRetry={feedbackState === 'try-again'}
-          canNext={isSolved}
-          onHint={showHint}
-          onRetry={retryStep}
-          onReset={resetSession}
-          onNext={() => {
-            if (nextPuzzle) {
-              const nextPath = `/practice/${nextPuzzle.id}`;
-              if (location.pathname !== nextPath) {
-                navigate(nextPath, { replace: true });
-              }
-            } else {
-              onExit();
-            }
-          }}
-          onExit={onExit}
-        />
 
         {isSolved && !nextPuzzle ? (
           <p className="practice-complete-note">

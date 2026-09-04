@@ -178,3 +178,26 @@ describe('scoring phase actions', () => {
     }
   });
 });
+
+describe('resignation', () => {
+  it('awards the opponent the win with resign reason while preserving scores', () => {
+    const blackResigns = dispatch(createInitialState(9), { type: 'resign' });
+    expect(blackResigns.ok).toBe(true);
+    if (blackResigns.ok) {
+      expect(blackResigns.state.result?.reason).toBe('resign');
+      expect(blackResigns.state.result?.winner).toBe('white');
+      expect(blackResigns.state.result?.blackScore).toBeTypeOf('number');
+      expect(blackResigns.state.result?.whiteScore).toBeTypeOf('number');
+    }
+
+    let state = createInitialState(9);
+    const played = dispatch(state, { type: 'play', position: { row: 2, col: 2 } });
+    if (!played.ok) throw new Error('play failed');
+    const whiteResigns = dispatch(played.state, { type: 'resign' });
+    expect(whiteResigns.ok).toBe(true);
+    if (whiteResigns.ok) {
+      expect(whiteResigns.state.result?.reason).toBe('resign');
+      expect(whiteResigns.state.result?.winner).toBe('black');
+    }
+  });
+});

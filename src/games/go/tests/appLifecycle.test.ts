@@ -1,10 +1,12 @@
 import { describe, expect, it, beforeEach, vi, afterEach } from 'vitest';
 import {
   getAppLifecycleActiveStateForTests,
+  isAppForeground,
   registerAppLifecycle,
   resetAppLifecycleForTests,
   simulateAppBackgroundForTests,
   simulateAppForegroundForTests,
+  simulatePageShowForTests,
 } from '../../../native/appLifecycle';
 
 describe('app lifecycle', () => {
@@ -80,5 +82,19 @@ describe('app lifecycle', () => {
 
     expect(handlerA).toHaveBeenCalledTimes(1);
     expect(handlerB).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores foreground after pagehide via pageshow (bfcache restore)', () => {
+    const onForeground = vi.fn();
+    registerAppLifecycle({ onForeground });
+
+    simulateAppBackgroundForTests();
+    expect(getAppLifecycleActiveStateForTests()).toBe(false);
+
+    simulatePageShowForTests();
+
+    expect(onForeground).toHaveBeenCalledTimes(1);
+    expect(getAppLifecycleActiveStateForTests()).toBe(true);
+    expect(isAppForeground()).toBe(true);
   });
 });

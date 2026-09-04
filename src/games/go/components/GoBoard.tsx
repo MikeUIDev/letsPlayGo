@@ -9,6 +9,7 @@ import {
   shouldFitBoardInViewport,
 } from '../coordinates/boardGridGeometry';
 import { shouldUseTouchPlacement, STONE_PLACEMENT_COOLDOWN_MS } from '../placement/touchPlacement';
+import { usePrefersCoarsePointer } from '../placement/usePrefersCoarsePointer';
 import { useTouchPlacement } from '../placement/useTouchPlacement';
 import { useRovingGrid } from '../../../accessibility/useRovingGrid';
 import { BoardCoordinates } from './BoardCoordinates';
@@ -109,8 +110,11 @@ export function GoBoard({
   const showTerritory = !reviewMode && (phase === 'scoring' || phase === 'ended');
   const readOnly = reviewMode || phase === 'ended';
   const starPoints = getStarPoints(size);
+  const prefersCoarsePointer = usePrefersCoarsePointer();
   const fitInViewport = shouldFitBoardInViewport(size, touchFriendly);
-  const touchPlacementEnabled = shouldUseTouchPlacement(size, touchFriendly);
+  const touchPlacementEnabled = shouldUseTouchPlacement(size, touchFriendly, {
+    coarsePointer: prefersCoarsePointer,
+  });
   const viewportRef = useRef<HTMLDivElement>(null);
   const intersectionsRef = useRef<HTMLDivElement>(null);
   const lastPlayAtRef = useRef(0);
@@ -163,10 +167,8 @@ export function GoBoard({
   const boardHint =
     phase === 'scoring'
       ? 'Tap stones to mark dead groups'
-      : phase === 'playing'
-        ? touchPlacementActive
-          ? 'Tap a point, then tap again to place'
-          : 'Tap intersections to play'
+      : phase === 'playing' && touchPlacementActive
+        ? 'Tap a point, then tap again to place'
         : null;
 
   const boardAccessibleName = useMemo(() => {

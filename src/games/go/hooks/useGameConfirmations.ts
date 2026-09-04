@@ -126,14 +126,14 @@ export function useGameConfirmations({
           title: 'Start a new game?',
           message: 'The current game in progress will be replaced.',
           confirmLabel: 'New game',
-          destructive: true,
+          destructive: false,
         };
       case 'newGameFromResume':
         return {
           title: 'Start a new game?',
           message: 'Your saved game will be replaced when you start a new one.',
           confirmLabel: 'New game',
-          destructive: true,
+          destructive: false,
         };
       case 'newGameFromFinished':
         return {
@@ -141,7 +141,7 @@ export function useGameConfirmations({
           message:
             'This finished game stays saved until you start a new one. You can cancel setup to return.',
           confirmLabel: 'New game',
-          destructive: true,
+          destructive: false,
         };
       case 'discardSaved':
         return {

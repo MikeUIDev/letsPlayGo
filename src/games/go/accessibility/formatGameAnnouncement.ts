@@ -42,6 +42,16 @@ export function formatHistoryEntryAnnouncement(
 }
 
 export function formatGameResultAnnouncement(result: GameResult): string {
+  if (result.reason === 'resign') {
+    if (result.winner === 'black') {
+      return 'Black wins by resignation.';
+    }
+    if (result.winner === 'white') {
+      return 'White wins by resignation.';
+    }
+    return 'Game ended by resignation.';
+  }
+
   if (result.winner === 'draw') {
     return `Game drawn. Score ${result.blackScore.toFixed(1)} to ${result.whiteScore.toFixed(1)}.`;
   }

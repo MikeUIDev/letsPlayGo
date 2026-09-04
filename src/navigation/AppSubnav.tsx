@@ -27,12 +27,14 @@ export function AppSubnav() {
   }
 
   return (
-    <nav className="app-subnav" aria-label="Section navigation">
+    <nav className={`app-subnav${title ? '' : ' app-subnav--back-only'}`} aria-label="Section navigation">
       <button type="button" className="app-subnav__back" onClick={handleBack}>
-        <span className="app-subnav__chevron" aria-hidden="true">‹</span>
+        <span className="app-subnav__chevron" aria-hidden="true">
+          ‹
+        </span>
         {backLabel}
       </button>
-      <span className="app-subnav__title">{title}</span>
+      {title ? <span className="app-subnav__title">{title}</span> : null}
     </nav>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../../../accessibility/useFocusTrap';
 import { registerOverlayCloser } from '../../../navigation/overlayNavigation';
 
@@ -26,6 +26,8 @@ export function GameConfirmSheet({
   const panelRef = useRef<HTMLDivElement>(null);
   const historyPushedRef = useRef(false);
   const closingFromHistoryRef = useRef(false);
+  const lockedRef = useRef(false);
+  const [busy, setBusy] = useState(false);
 
   const dismissHistoryEntry = useCallback(() => {
     if (historyPushedRef.current) {
@@ -35,36 +37,58 @@ export function GameConfirmSheet({
     }
   }, []);
 
+  const settle = useCallback(
+    (action: () => void) => {
+      if (lockedRef.current) {
+        return;
+      }
+      lockedRef.current = true;
+      setBusy(true);
+      dismissHistoryEntry();
+      action();
+    },
+    [dismissHistoryEntry],
+  );
+
   const handleCancel = useCallback(() => {
-    dismissHistoryEntry();
-    onCancel();
-  }, [dismissHistoryEntry, onCancel]);
+    settle(onCancel);
+  }, [onCancel, settle]);
 
   const handleConfirm = useCallback(() => {
-    dismissHistoryEntry();
-    onConfirm();
-  }, [dismissHistoryEntry, onConfirm]);
+    settle(onConfirm);
+  }, [onConfirm, settle]);
 
   useFocusTrap({
     active: open,
     containerRef: panelRef,
     onEscape: handleCancel,
     initialFocus: 'first',
+    restoreFocus: true,
   });
 
   useEffect(() => {
     if (!open) {
       historyPushedRef.current = false;
       closingFromHistoryRef.current = false;
+      lockedRef.current = false;
+      setBusy(false);
       return;
     }
+
+    lockedRef.current = false;
+    setBusy(false);
 
     const onPopState = () => {
       if (closingFromHistoryRef.current) {
         closingFromHistoryRef.current = false;
         return;
       }
+      if (lockedRef.current) {
+        return;
+      }
       historyPushedRef.current = false;
+      lockedRef.current = true;
+      setBusy(true);
       onCancel();
     };
 
@@ -86,6 +110,13 @@ export function GameConfirmSheet({
 
   return (
     <div className="game-sheet" role="presentation">
+      <button
+        type="button"
+        className="game-sheet__backdrop"
+        tabIndex={-1}
+        aria-hidden="true"
+        onClick={handleCancel}
+      />
       <div
         ref={panelRef}
         className="game-sheet__panel"
@@ -106,6 +137,7 @@ export function GameConfirmSheet({
           <button
             type="button"
             className="control-button control-button--secondary game-sheet__button"
+            disabled={busy}
             onClick={handleCancel}
           >
             {cancelLabel}
@@ -113,19 +145,13 @@ export function GameConfirmSheet({
           <button
             type="button"
             className={`control-button game-sheet__button${destructive ? ' control-button--destructive' : ' control-button--primary'}`}
+            disabled={busy}
             onClick={handleConfirm}
           >
             {confirmLabel}
           </button>
         </div>
       </div>
-      <button
-        type="button"
-        className="game-sheet__backdrop"
-        tabIndex={-1}
-        aria-hidden="true"
-        onClick={handleCancel}
-      />
     </div>
   );
 }

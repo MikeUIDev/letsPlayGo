@@ -13,11 +13,19 @@
 }
 
 .tutorial-header {
-  padding: var(--space-6) 0 var(--space-4);
+  padding: var(--space-5) 0 var(--space-4);
+}
+
+.tutorial-header--hub {
+  padding: var(--space-5) 0 var(--space-3);
+}
+
+.tutorial-header--lesson {
+  padding: var(--space-3) 0 var(--space-3);
 }
 
 .tutorial-header__eyebrow {
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--space-1);
   color: var(--color-text-muted);
   font-size: 0.75rem;
   letter-spacing: 0.16em;
@@ -28,6 +36,11 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: clamp(1.6rem, 4vw, 2.2rem);
+  line-height: 1.15;
+}
+
+.tutorial-header--lesson .tutorial-header__title {
+  font-size: clamp(1.35rem, 3.5vw, 1.75rem);
 }
 
 .tutorial-header__intro {
@@ -37,8 +50,19 @@
   line-height: 1.65;
 }
 
+.tutorial-progress {
+  margin-top: var(--space-3);
+}
+
+.tutorial-progress__label {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .tutorial-progress-bar {
-  margin-top: var(--space-4);
+  margin-top: 0;
   height: 0.35rem;
   border-radius: 999px;
   background: var(--color-surface-muted);
@@ -59,120 +83,290 @@
 
 .tutorial-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
-  gap: var(--space-5);
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
   align-items: start;
+  justify-items: stretch;
 }
 
 .tutorial-panel {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+  max-width: 42rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.tutorial-panel__progress,
 .tutorial-panel__concept,
 .tutorial-panel__learn-more,
 .tutorial-panel__tip,
 .tutorial-panel__hint {
-  margin: 0 0 var(--space-3);
-  color: var(--color-text-muted);
-  line-height: 1.6;
-}
-
-.tutorial-panel__lesson {
   margin: 0 0 var(--space-2);
-  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  font-size: 0.92rem;
 }
 
 .tutorial-panel__title {
   margin: 0 0 var(--space-2);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .tutorial-panel__body {
-  margin: 0 0 var(--space-3);
-  line-height: 1.65;
-}
-
-.tutorial-panel__feedback {
-  margin: var(--space-3) 0 0;
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
+  margin: 0 0 var(--space-2);
   line-height: 1.55;
 }
 
+.tutorial-panel__status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  /* Reserve a line so compact success/error feedback doesn’t shove the board. */
+  min-height: 1.35rem;
+}
+
+.tutorial-panel__tip,
+.tutorial-panel__hint {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.tutorial-panel__feedback {
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
 .tutorial-panel__feedback--try-again {
-  background: color-mix(in srgb, var(--color-warning, #b45309) 12%, var(--color-surface));
-  border: 1px solid color-mix(in srgb, var(--color-warning, #b45309) 35%, var(--color-border));
+  padding-left: var(--space-3);
+  border-left: 2px solid color-mix(in srgb, var(--color-warning, #b45309) 55%, var(--color-border));
+  color: var(--color-text);
 }
 
 .tutorial-panel__feedback--correct {
-  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
-  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  color: var(--color-text);
+  font-weight: 600;
 }
 
+.tutorial-panel__learn-more-link {
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/*
+ * Teaching boards need a definite width. Shrink-to-fit + margin:auto + child
+ * width:min(100%, …) collapses on iOS WebKit (percentage against indefinite CB).
+ */
 .tutorial-board-wrap {
+  --tutorial-board-max: 20rem; /* ~320px teaching size on phones */
+  box-sizing: border-box;
+  width: min(100%, var(--tutorial-board-max));
+  max-width: 100%;
   min-width: 0;
+  margin-inline: auto;
 }
 
 .tutorial-board-wrap .go-board-frame {
-  width: min(100%, 24rem);
+  width: 100%;
+  max-width: none;
   margin-inline: auto;
 }
 
 .tutorial-controls {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  flex-direction: column;
   gap: var(--space-3);
-  margin-top: var(--space-5);
+  margin-top: var(--space-4);
 }
 
-.tutorial-controls__primary,
-.tutorial-controls__secondary {
+.tutorial-controls__nav,
+.tutorial-controls__tools {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  width: 100%;
+}
+
+.tutorial-controls__nav--with-next .tutorial-controls__button--next {
+  flex: 1 1 12rem;
+  min-width: min(100%, 12rem);
+}
+
+.tutorial-controls__nav--with-next:not(:has(.tutorial-controls__button--previous))
+  .tutorial-controls__button--next {
+  width: 100%;
+  flex: 1 1 100%;
+}
+
+.tutorial-controls__button--previous {
+  flex: 0 1 auto;
+  min-width: 6.5rem;
 }
 
 .tutorial-controls__button {
   min-height: 2.75rem;
-  padding: 0.55rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
+}
+
+.tutorial-controls__tools .tutorial-controls__button {
+  flex: 1 1 auto;
+  min-width: 5.5rem;
+}
+
+.tutorial-controls__tertiary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem var(--space-2);
+}
+
+.tutorial-controls__tertiary-button {
+  min-height: 2.75rem;
+  padding: 0.35rem 0.15rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
   font: inherit;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-.tutorial-controls__button:focus-visible {
-  outline: 2px solid var(--color-primary);
+.tutorial-controls__tertiary-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 70%, white);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
-.tutorial-controls__button--primary {
-  color: var(--color-primary-text);
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.tutorial-controls__button--ghost {
-  background: transparent;
+.tutorial-controls__tertiary-sep {
+  color: var(--color-text-muted);
+  opacity: 0.7;
 }
 
 .tutorial-lesson-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
 }
 
+.tutorial-lesson-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.75rem;
+  padding: 0.7rem var(--space-4);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  text-decoration: none;
+  color: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tutorial-lesson-list > li:last-child .tutorial-lesson-row {
+  border-bottom: none;
+}
+
+.tutorial-lesson-row:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 70%, white);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.tutorial-lesson-row--current {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+}
+
+.tutorial-lesson-row--completed .tutorial-lesson-row__title {
+  font-weight: 600;
+}
+
+.tutorial-lesson-row__order {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tutorial-lesson-row__order--done {
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-muted));
+  color: var(--color-primary);
+  font-size: 0.78rem;
+}
+
+.tutorial-lesson-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.tutorial-lesson-row__title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.tutorial-lesson-row__summary {
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.tutorial-lesson-row__trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
+.tutorial-lesson-row__status {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+.tutorial-lesson-row--current .tutorial-lesson-row__status {
+  color: var(--color-text);
+}
+
+.tutorial-lesson-row__chevron {
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  font-weight: 400;
+}
+
+/* Legacy selectors kept for any remaining references. */
 .tutorial-lesson-list__item {
   display: flex;
   flex-wrap: wrap;
@@ -228,7 +422,7 @@
 .tutorial-resume__link,
 .tutorial-complete__link,
 .tutorial-hub-footer__link {
-  color: var(--color-primary);
+  color: var(--color-text);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 0.15em;
@@ -281,45 +475,80 @@
 
 .tutorial-start-card {
   display: block;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
   padding: var(--space-4);
-  border: 1px solid var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 32%, var(--color-border));
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
   text-decoration: none;
   color: inherit;
+  min-height: 2.75rem;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
+.tutorial-start-card--recommended {
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+  box-shadow: var(--shadow-soft);
+}
+
+.tutorial-start-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 70%, white);
+  outline-offset: 2px;
+}
+
+.tutorial-start-card__eyebrow {
+  display: block;
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .tutorial-start-card__title {
-  margin: 0 0 var(--space-2);
-  font-size: 1.1rem;
+  margin: 0 0 var(--space-1);
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 .tutorial-start-card__description {
   margin: 0;
   color: var(--color-text-muted);
-  line-height: 1.55;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 860px) {
-  .tutorial-layout {
-    grid-template-columns: 1fr;
+  .tutorial-page--lesson {
+    padding-bottom: max(var(--space-5), var(--safe-bottom));
   }
 
   .tutorial-board-wrap {
-    order: -1;
-    max-width: min(100%, 22.5rem);
-    margin-inline: auto;
-  }
-
-  .tutorial-page--lesson {
-    padding-bottom: calc(6.75rem + var(--safe-bottom));
+    --tutorial-board-max: 19.5rem; /* ~312px; stays within small iPhone content width */
   }
 
   .tutorial-header {
     padding: var(--space-4) 0 var(--space-3);
+  }
+
+  .tutorial-header--hub {
+    padding: var(--space-3) 0 var(--space-2);
+  }
+
+  .tutorial-header--lesson {
+    padding: var(--space-2) 0 var(--space-2);
+  }
+
+  .tutorial-header--lesson .tutorial-header__title {
+    font-size: clamp(1.25rem, 5vw, 1.55rem);
+  }
+
+  .tutorial-progress {
+    margin-top: var(--space-2);
   }
 
   .tutorial-header__title {
@@ -328,7 +557,7 @@
 
   .tutorial-header__intro,
   .tutorial-panel__body,
-  .tutorial-panel__progress,
+  .tutorial-panel__concept,
   .tutorial-panel__hint,
   .tutorial-panel__tip {
     font-size: 0.92rem;
@@ -340,39 +569,38 @@
   }
 
   .tutorial-panel__title {
-    font-size: 1.05rem;
+    font-size: 1.02rem;
   }
 
-  .tutorial-controls--sticky {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 120;
-    margin-top: 0;
-    padding: var(--space-3) max(var(--space-4), var(--safe-left))
-      max(var(--space-3), var(--safe-bottom)) max(var(--space-4), var(--safe-right));
-    border-top: 1px solid var(--color-border);
-    background: color-mix(in srgb, var(--color-bg) 94%, white);
-    box-shadow: 0 -8px 24px rgba(45, 41, 38, 0.08);
+  .tutorial-controls {
+    margin-top: var(--space-3);
+    gap: var(--space-2);
   }
 
-  .tutorial-controls__button {
-    min-height: 2.85rem;
+  .tutorial-controls__nav--with-next {
+    flex-direction: column-reverse;
   }
 
-  .tutorial-controls__primary,
-  .tutorial-controls__secondary {
+  .tutorial-controls__nav--with-next .tutorial-controls__button--next {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .tutorial-controls__nav--with-next .tutorial-controls__button--previous {
     width: 100%;
   }
 
-  .tutorial-lesson-list__item {
-    flex-direction: column;
-    align-items: stretch;
+  .tutorial-controls__button {
+    min-height: 2.75rem;
   }
 
-  .tutorial-lesson-list__actions {
-    justify-content: flex-start;
+  .tutorial-lesson-row {
+    gap: var(--space-2);
+    padding: 0.65rem var(--space-3);
+  }
+
+  .tutorial-lesson-row__summary {
+    font-size: 0.8rem;
   }
 
   .tutorial-hub-footer,
@@ -382,12 +610,14 @@
   }
 }
 
-@media (min-width: 769px) and (max-width: 1180px) and (pointer: coarse) {
-  .tutorial-page {
-    --tutorial-board-max: 28rem;
-  }
-
+@media (min-width: 769px) {
   .tutorial-board-wrap {
-    max-width: min(100%, var(--tutorial-board-max, 28rem));
+    --tutorial-board-max: 24rem;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) and (pointer: coarse) {
+  .tutorial-board-wrap {
+    --tutorial-board-max: 28rem;
   }
 }

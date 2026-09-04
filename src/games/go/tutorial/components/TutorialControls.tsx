@@ -35,64 +35,80 @@ export function TutorialControls({
   const runAction = useActionCooldown();
   const isInfoStep = feedbackState === 'idle' && canContinue;
   const showContinue = feedbackState === 'correct' || isInfoStep;
+  const continueLabel = feedbackState === 'correct' ? 'Continue' : 'Next';
 
   return (
-    <div className="tutorial-controls tutorial-controls--sticky">
-      <div className="tutorial-controls__primary">
-        {showContinue ? (
-          <button
-            type="button"
-            className="tutorial-controls__button tutorial-controls__button--primary"
-            onClick={() => runAction(onContinue)}
-          >
-            {feedbackState === 'correct' ? 'Continue' : 'Next'}
-          </button>
-        ) : null}
-        {canRetry ? (
-          <button
-            type="button"
-            className="tutorial-controls__button"
-            onClick={() => runAction(onRetry)}
-          >
-            Retry
-          </button>
-        ) : null}
-        {canPass ? (
-          <button type="button" className="tutorial-controls__button" onClick={() => runAction(onPass)}>
-            Pass
-          </button>
-        ) : null}
-        {canHint ? (
-          <button
-            type="button"
-            className="tutorial-controls__button"
-            aria-label="Show tutorial hint"
-            onClick={() => runAction(onHint)}
-          >
-            Show hint
-          </button>
-        ) : null}
-      </div>
-      <div className="tutorial-controls__secondary">
-        {canPrevious ? (
-          <button
-            type="button"
-            className="tutorial-controls__button tutorial-controls__button--ghost"
-            onClick={() => runAction(onPrevious)}
-          >
-            Previous
-          </button>
-        ) : null}
+    <div className="tutorial-controls">
+      {(showContinue || canPrevious) && (
+        <div className={`tutorial-controls__nav${showContinue ? ' tutorial-controls__nav--with-next' : ''}`}>
+          {canPrevious ? (
+            <button
+              type="button"
+              className="control-button control-button--secondary tutorial-controls__button tutorial-controls__button--previous"
+              onClick={() => runAction(onPrevious)}
+            >
+              Previous
+            </button>
+          ) : null}
+          {showContinue ? (
+            <button
+              type="button"
+              className="control-button control-button--primary tutorial-controls__button tutorial-controls__button--next"
+              onClick={() => runAction(onContinue)}
+            >
+              {continueLabel}
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      {(canRetry || canPass || canHint) && (
+        <div className="tutorial-controls__tools">
+          {canRetry ? (
+            <button
+              type="button"
+              className="control-button control-button--secondary tutorial-controls__button"
+              onClick={() => runAction(onRetry)}
+            >
+              Retry
+            </button>
+          ) : null}
+          {canPass ? (
+            <button
+              type="button"
+              className="control-button control-button--secondary tutorial-controls__button"
+              onClick={() => runAction(onPass)}
+            >
+              Pass
+            </button>
+          ) : null}
+          {canHint ? (
+            <button
+              type="button"
+              className="control-button control-button--secondary tutorial-controls__button"
+              aria-label="Show tutorial hint"
+              onClick={() => runAction(onHint)}
+            >
+              Hint
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      <div className="tutorial-controls__tertiary">
         <button
           type="button"
-          className="tutorial-controls__button tutorial-controls__button--ghost"
+          className="tutorial-controls__tertiary-button"
           onClick={() => runAction(onRestart)}
         >
           Restart
         </button>
+        <span className="tutorial-controls__tertiary-sep" aria-hidden="true">
+          ·
+        </span>
         <button
           type="button"
-          className="tutorial-controls__button tutorial-controls__button--ghost"
+          className="tutorial-controls__tertiary-button"
           onClick={() => runAction(onExit)}
         >
           Exit Tutorial

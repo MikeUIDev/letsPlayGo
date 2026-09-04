@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { GO_CONCEPTS } from '../../concepts/concepts';
 import { getLearnConceptUrl } from '../../learn/conceptAnchors';
@@ -12,6 +13,7 @@ type PuzzlePanelProps = {
   stepIndex: number;
   totalSteps: number;
   isSolved: boolean;
+  actions?: ReactNode;
 };
 
 function feedbackPrefix(state: PuzzleFeedbackState): string {
@@ -26,6 +28,7 @@ function feedbackPrefix(state: PuzzleFeedbackState): string {
       return '';
   }
 }
+
 export function PuzzlePanel({
   puzzle,
   feedbackState,
@@ -34,41 +37,49 @@ export function PuzzlePanel({
   stepIndex,
   totalSteps,
   isSolved,
+  actions,
 }: PuzzlePanelProps) {
   const category = getCategoryMeta(puzzle.category);
   const concept = GO_CONCEPTS[puzzle.concept];
+  const stepLabel =
+    totalSteps > 1 ? ` · Step ${Math.min(stepIndex + 1, totalSteps)} of ${totalSteps}` : '';
 
   return (
-    <section className="practice-panel" aria-label={puzzle.title}>
+    <section className="practice-panel practice-panel--puzzle" aria-label={puzzle.title}>
+      <p className="practice-panel__objective">{puzzle.objective}</p>
       <p className="practice-panel__meta">
         {category.label} · {difficultyLabel(puzzle.difficulty)}
-        {totalSteps > 1 ? ` · Step ${Math.min(stepIndex + 1, totalSteps)} of ${totalSteps}` : null}
-      </p>
-      <p className="practice-panel__objective">{puzzle.objective}</p>
-      <p className="practice-panel__concept">
-        <strong>{concept.name}:</strong> {concept.shortDefinition}
+        {stepLabel}
       </p>
 
-      {hintMessage ? (
-        <p className="practice-panel__hint" role="status">
-          Hint: {hintMessage}
-        </p>
-      ) : null}
+      {actions ? <div className="practice-panel__actions">{actions}</div> : null}
 
-      {feedbackMessage ? (
-        <p
-          className={`practice-panel__feedback practice-panel__feedback--${feedbackState}`}
-          role="status"
-          aria-live="polite"
-        >
-          {feedbackPrefix(feedbackState)}
-          {feedbackMessage}
-        </p>
-      ) : null}
+      <div className="practice-panel__status" aria-live="polite">
+        {hintMessage ? (
+          <p className="practice-panel__hint" role="status">
+            Hint: {hintMessage}
+          </p>
+        ) : null}
+
+        {feedbackMessage ? (
+          <p
+            className={`practice-panel__feedback practice-panel__feedback--${feedbackState}`}
+            role="status"
+          >
+            {feedbackPrefix(feedbackState)}
+            {feedbackMessage}
+          </p>
+        ) : (
+          <div className="practice-panel__feedback-slot" aria-hidden="true" />
+        )}
+      </div>
 
       {isSolved ? (
         <div className="practice-panel__solved">
           <p>{puzzle.explanation}</p>
+          <p className="practice-panel__concept">
+            <strong>{concept.name}:</strong> {concept.shortDefinition}
+          </p>
           <p className="practice-panel__links">
             <Link to={getLearnConceptUrl(puzzle.concept)}>Learn more about {concept.name} →</Link>
           </p>

@@ -1,5 +1,6 @@
 import {
   aiInvalidMoveMessage,
+  aiMalformedMessage,
   aiOfflineMessage,
   aiTimeoutMessage,
   aiUnavailableMessage,
@@ -65,7 +66,7 @@ export function mapFetchFailure(error: unknown): ApiTransportError {
   }
 
   if (error instanceof SyntaxError) {
-    return new ApiTransportError('invalid_response', aiUnavailableMessage());
+    return new ApiTransportError('invalid_response', aiMalformedMessage());
   }
 
   if (error instanceof TypeError) {
@@ -124,13 +125,37 @@ export class AiApiClient {
         signal: timeoutController.signal,
       });
 
-      const payload = (await response.json()) as unknown;
+      const raw = await response.text();
+      let payload: unknown = null;
+      if (raw) {
+        try {
+          payload = JSON.parse(raw) as unknown;
+        } catch {
+          // Distinguish server failure (5xx HTML/non-JSON) from a 200 malformed body.
+          if (!response.ok) {
+            const code = mapHttpStatusToCode(response.status);
+            throw new ApiTransportError(
+              code,
+              code === 'timeout' ? aiTimeoutMessage() : aiUnavailableMessage(),
+            );
+          }
+          throw new ApiTransportError('invalid_response', aiMalformedMessage());
+        }
+      }
 
       if (!response.ok) {
+        const code = mapHttpStatusToCode(response.status);
         throw new ApiTransportError(
-          mapHttpStatusToCode(response.status),
-          messageFromErrorBody(payload, aiUnavailableMessage()),
+          code,
+          messageFromErrorBody(
+            payload,
+            code === 'timeout' ? aiTimeoutMessage() : aiUnavailableMessage(),
+          ),
         );
+      }
+
+      if (payload === null) {
+        throw new ApiTransportError('invalid_response', aiMalformedMessage());
       }
 
       return payload as T;
@@ -147,13 +172,13 @@ export class AiApiClient {
 
 export function parseApiMoveResponse(payload: unknown): import('../ai/types').GenerateMoveResult {
   if (!payload || typeof payload !== 'object') {
-    throw new ApiTransportError('invalid_response', aiUnavailableMessage());
+    throw new ApiTransportError('invalid_response', aiMalformedMessage());
   }
 
   const body = payload as import('./contracts').ApiMoveResponseBody & Record<string, unknown>;
 
   if (!body.move || typeof body.move !== 'object') {
-    throw new ApiTransportError('invalid_response', aiUnavailableMessage());
+    throw new ApiTransportError('invalid_response', aiMalformedMessage());
   }
 
   if (body.move.type === 'pass') {

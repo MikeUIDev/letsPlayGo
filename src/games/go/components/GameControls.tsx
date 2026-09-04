@@ -35,6 +35,7 @@ export function GameControls({
 }: GameControlsProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     return registerOverlayCloser(() => setMenuOpen(false));
@@ -48,15 +49,21 @@ export function GameControls({
     );
     firstItem?.focus();
 
+    function closeMenu() {
+      setMenuOpen(false);
+      moreButtonRef.current?.focus();
+    }
+
     function handlePointerDown(event: MouseEvent | TouchEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
+        closeMenu();
       }
     }
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setMenuOpen(false);
+        event.preventDefault();
+        closeMenu();
       }
     }
 
@@ -67,7 +74,9 @@ export function GameControls({
       }
 
       const items = getFocusableElements(panel).filter(
-        (element) => element.getAttribute('role') === 'menuitem' || element.getAttribute('role') === 'menuitemcheckbox',
+        (element) =>
+          element.getAttribute('role') === 'menuitem' ||
+          element.getAttribute('role') === 'menuitemcheckbox',
       );
       const index = items.findIndex((item) => item === document.activeElement);
       if (index === -1) {
@@ -134,6 +143,7 @@ export function GameControls({
 
       <div className="more-menu" ref={menuRef}>
         <button
+          ref={moreButtonRef}
           type="button"
           className="control-button control-button--secondary"
           aria-haspopup="menu"
@@ -156,6 +166,7 @@ export function GameControls({
               className="more-menu__item"
               onClick={() => {
                 setMenuOpen(false);
+                moreButtonRef.current?.focus();
                 onRequestNewGame();
               }}
             >
@@ -192,10 +203,14 @@ export function GameControls({
               role="menuitemcheckbox"
               aria-checked={showCoordinates}
               className="more-menu__item"
-              onClick={onToggleCoordinates}
+              onClick={() => {
+                onToggleCoordinates();
+                setMenuOpen(false);
+              }}
             >
-              Show coordinates
+              {showCoordinates ? 'Hide coordinates' : 'Show coordinates'}
             </button>
+            <div className="more-menu__separator" role="separator" />
             <button
               type="button"
               role="menuitem"
@@ -203,6 +218,7 @@ export function GameControls({
               disabled={!canAct}
               onClick={() => {
                 setMenuOpen(false);
+                moreButtonRef.current?.focus();
                 onRequestResign();
               }}
             >

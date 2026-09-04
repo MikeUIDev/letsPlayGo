@@ -85,5 +85,14 @@ describe('game announcements', () => {
         reason: 'score',
       }),
     ).toContain('Black wins');
+
+    expect(
+      formatGameResultAnnouncement({
+        winner: 'white',
+        blackScore: 10,
+        whiteScore: 40,
+        reason: 'resign',
+      }),
+    ).toBe('White wins by resignation.');
   });
 });

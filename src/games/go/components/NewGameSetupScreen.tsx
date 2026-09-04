@@ -302,7 +302,7 @@ export function NewGameSetupScreen({
 
         {setup.mode === 'ai' && (
           <fieldset className="go-setup__field">
-            <legend className="go-setup__legend">Difficulty</legend>
+            <legend className="go-setup__legend">AI Difficulty</legend>
             <div
               className="go-setup__segmented go-setup__segmented--difficulty"
               role="radiogroup"
@@ -365,29 +365,31 @@ export function NewGameSetupScreen({
           </p>
         </fieldset>
 
-        <div className={`go-setup__actions${canCancel ? '' : ' go-setup__actions--solo'}`}>
-          {canCancel && (
-            <button type="button" className="control-button control-button--secondary" onClick={onCancel}>
-              Cancel
+        <div className="go-setup__footer">
+          <div className={`go-setup__actions${canCancel ? '' : ' go-setup__actions--solo'}`}>
+            {canCancel && (
+              <button type="button" className="control-button control-button--secondary" onClick={onCancel}>
+                Cancel
+              </button>
+            )}
+            <button
+              type="button"
+              className="control-button control-button--primary go-setup__start"
+              disabled={!komiValid}
+              onClick={handleStart}
+            >
+              Start Game
             </button>
-          )}
-          <button
-            type="button"
-            className="control-button control-button--primary go-setup__start"
-            disabled={!komiValid}
-            onClick={handleStart}
-          >
-            Start Game
-          </button>
-        </div>
+          </div>
 
-        <SgfFileInput id="setup-import-sgf" onFileSelected={onImportSgf}>
-          {(openFilePicker) => (
-            <button type="button" className="go-setup__secondary-button" onClick={openFilePicker}>
-              Import SGF
-            </button>
-          )}
-        </SgfFileInput>
+          <SgfFileInput id="setup-import-sgf" onFileSelected={onImportSgf}>
+            {(openFilePicker) => (
+              <button type="button" className="go-setup__secondary-button" onClick={openFilePicker}>
+                Import SGF
+              </button>
+            )}
+          </SgfFileInput>
+        </div>
 
         {error && (
           <p className="game-error" role="alert">

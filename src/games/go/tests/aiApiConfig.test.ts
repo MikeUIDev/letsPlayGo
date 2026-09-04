@@ -28,7 +28,8 @@ describe('ai api config', () => {
   it('selects api provider from env', () => {
     vi.stubEnv('VITE_AI_PROVIDER', 'api');
     expect(getAiProvider()).toBe('api');
-    expect(getAiApiRuntimeConfig()?.provider).toBe('api');
+    // Dev resolves missing base URL to `/api` (Vite proxy); production returns null instead.
+    expect(getAiApiRuntimeConfig()?.provider).toBe(env.DEV ? 'api' : undefined);
   });
 
   it('uses configured HTTPS base URL without trailing slash', () => {
@@ -45,9 +46,11 @@ describe('ai api config', () => {
     vi.stubEnv('VITE_AI_PROVIDER', 'api');
     if (env.DEV) {
       expect(isProductionApiMisconfigured()).toBe(false);
+      expect(getAiApiRuntimeConfig()?.baseUrl).toBe('/api');
     } else {
       vi.stubEnv('VITE_AI_API_BASE_URL', '');
       expect(isProductionApiMisconfigured()).toBe(true);
+      expect(getAiApiRuntimeConfig()).toBeNull();
     }
   });
 });

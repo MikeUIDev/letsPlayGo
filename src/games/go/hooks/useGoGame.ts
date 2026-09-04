@@ -90,6 +90,7 @@ export interface UseGoGameResult {
   exitReview: () => void;
   clearError: () => void;
   retryAi: () => void;
+  canRetryAi: boolean;
 }
 
 export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
@@ -114,6 +115,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
   const actionInFlightRef = useRef(false);
   const prevPhaseRef = useRef<GamePhase | null>(null);
   const wasBackgroundedRef = useRef(false);
+  const aiInterruptedByBackgroundRef = useRef(false);
   const lifecycleRef = useRef({
     cancelPendingAi: () => {},
     resumeAiAfterBackground: () => {},
@@ -146,7 +148,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     setState(nextState);
   }, []);
 
-  const { status: aiStatus, cancelPending: cancelPendingAi, resumeAfterBackground: resumeAiAfterBackground, retry: retryAi } = useGoAI({
+  const { status: aiStatus, canRetry: canRetryAi, cancelPending: cancelPendingAi, resumeAfterBackground: resumeAiAfterBackground, retry: retryAi } = useGoAI({
     ai,
     state,
     enabled: view === 'game',
@@ -167,6 +169,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
         }
 
         wasBackgroundedRef.current = true;
+        aiInterruptedByBackgroundRef.current = aiStatusRef.current === 'thinking';
         lifecycleRef.current.cancelPendingAi();
       },
       onForeground: () => {
@@ -175,6 +178,11 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
         }
 
         wasBackgroundedRef.current = false;
+        if (!aiInterruptedByBackgroundRef.current) {
+          return;
+        }
+
+        aiInterruptedByBackgroundRef.current = false;
         lifecycleRef.current.resumeAiAfterBackground();
       },
     });
@@ -216,7 +224,10 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
       actionInFlightRef.current = true;
 
       setState((current) => {
-        if (!current) return current;
+        if (!current) {
+          actionInFlightRef.current = false;
+          return current;
+        }
         const result = dispatch(current, action);
         if (result.ok) {
           setError(null);
@@ -227,6 +238,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
           notifyIllegalMove();
         }
         setError(formatEngineError(result.error));
+        actionInFlightRef.current = false;
         return current;
       });
     },
@@ -257,6 +269,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
   const openSetup = useCallback(() => {
     const current = stateRef.current;
 
+    cancelPendingAi();
     setIsReviewing(false);
     if (current) {
       setSavedGameState(current);
@@ -268,7 +281,7 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
 
     setView('setup');
     setError(null);
-  }, [lastSetup]);
+  }, [cancelPendingAi, lastSetup]);
 
   const openSetupFromResume = useCallback(() => {
     if (resumeSnapshot) {
@@ -492,5 +505,6 @@ export function useGoGame(options: UseGoGameOptions = {}): UseGoGameResult {
     exitReview,
     clearError,
     retryAi,
+    canRetryAi,
   };
 }

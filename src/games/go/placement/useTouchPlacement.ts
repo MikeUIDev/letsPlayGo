@@ -61,9 +61,12 @@ export function useTouchPlacement({
     }
   }, []);
 
+  const isTouchLayerPointer = (pointerType: string) =>
+    pointerType === 'touch' || pointerType === 'pen' || pointerType === 'mouse';
+
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
-      if (!enabled || !canPlay || event.pointerType !== 'touch') {
+      if (!enabled || !canPlay || !isTouchLayerPointer(event.pointerType)) {
         return;
       }
 
@@ -79,7 +82,7 @@ export function useTouchPlacement({
 
   const handlePointerUp = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
-      if (!enabled || !canPlay || event.pointerType !== 'touch') {
+      if (!enabled || !canPlay || !isTouchLayerPointer(event.pointerType)) {
         return;
       }
 
@@ -116,6 +119,29 @@ export function useTouchPlacement({
       const isLegalEmpty =
         stone === null && (legality.legal || allowIllegalPlays);
 
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Mouse / trackpad on the touch layer: single-click placement (simulator, iPad pointer).
+      if (event.pointerType === 'mouse') {
+        if (!isLegalEmpty) {
+          return;
+        }
+
+        const now = Date.now();
+        if (now - lastCommitAtRef.current < COMMIT_COOLDOWN_MS) {
+          return;
+        }
+        lastCommitAtRef.current = now;
+        setPendingPosition(null);
+        onPlay(position);
+
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        return;
+      }
+
       const action = resolveTouchPlacementTap(
         pendingPosition,
         position,
@@ -126,9 +152,6 @@ export function useTouchPlacement({
       if (action.type === 'ignore') {
         return;
       }
-
-      event.preventDefault();
-      event.stopPropagation();
 
       if (action.type === 'select') {
         setPendingPosition(action.position);

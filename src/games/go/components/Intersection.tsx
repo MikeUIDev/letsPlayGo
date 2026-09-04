@@ -69,13 +69,18 @@ export function Intersection({
   } | null>(null);
 
   const coordinate = positionToGoCoordinate(position, boardSize);
+  const highlightLabel = conceptHighlighted ? ', highlighted target' : '';
   const label = stone
-    ? `${coordinate}, ${stone} stone${isDead ? ', marked dead' : ''}${isLastMove ? ', last move' : ''}`
-    : territoryOwner && territoryOwner !== 'neutral'
-      ? `${coordinate}, ${territoryOwner} territory`
-      : isLegal && canPlay
-        ? `${coordinate}, empty, legal move`
-        : `${coordinate}, empty intersection`;
+    ? `${coordinate}, ${stone} stone${isDead ? ', marked dead' : ''}${isLastMove ? ', last move' : ''}${highlightLabel}`
+    : isPending && isLegal
+      ? `${coordinate}, selected, tap again to place${highlightLabel}`
+      : territoryOwner && territoryOwner !== 'neutral'
+        ? `${coordinate}, ${territoryOwner} territory${highlightLabel}`
+        : isLegal && canPlay
+          ? `${coordinate}, empty, legal move${highlightLabel}`
+          : `${coordinate}, empty intersection${highlightLabel}`;
+
+  const showPendingPreview = isPending && stone === null && (isLegal || allowIllegalPlays);
 
   const isInteractive =
     !readOnly &&
@@ -106,7 +111,7 @@ export function Intersection({
   }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!isInteractive || event.pointerType === 'mouse') {
+    if (!isInteractive || event.button !== 0) {
       return;
     }
 
@@ -119,7 +124,7 @@ export function Intersection({
   }
 
   function handlePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!isInteractive || event.pointerType === 'mouse') {
+    if (!isInteractive || event.button !== 0) {
       return;
     }
 
@@ -154,10 +159,10 @@ export function Intersection({
   }
 
   function handleClick(event: React.MouseEvent<HTMLDivElement>) {
-    if (!isInteractive) return;
+    if (!isInteractive || event.button !== 0) return;
 
-    const pointerType = (event.nativeEvent as PointerEvent).pointerType;
-    if (pointerType === 'touch' || event.detail === 0) {
+    // Pointer handlers already placed the stone; ignore the follow-up click.
+    if (typeof window !== 'undefined' && 'PointerEvent' in window) {
       return;
     }
 
@@ -175,7 +180,7 @@ export function Intersection({
   return (
     <div
       role="gridcell"
-      className={`intersection${isLegal ? ' intersection--legal' : ''}${isPending ? ' intersection--pending' : ''}${canMarkDead && stone !== null ? ' intersection--scoring-stone' : ''}${readOnly ? ' intersection--readonly' : ''}${candidateRank ? ' intersection--candidate' : ''}${conceptHighlighted ? ' intersection--concept-highlight' : ''}${isInteractive ? ' intersection--interactive' : ''}`}
+      className={`intersection${isLegal ? ' intersection--legal' : ''}${showPendingPreview ? ' intersection--pending' : ''}${canMarkDead && stone !== null ? ' intersection--scoring-stone' : ''}${readOnly ? ' intersection--readonly' : ''}${candidateRank ? ' intersection--candidate' : ''}${conceptHighlighted ? ' intersection--concept-highlight' : ''}${isInteractive ? ' intersection--interactive' : ''}`}
       style={style}
       data-intersection={`${position.row}-${position.col}`}
       aria-rowindex={position.row + 1}
@@ -200,19 +205,19 @@ export function Intersection({
               aria-hidden="true"
             />
           )}
-          {canPlay && !suppressPlayGhost && (isLegal || allowIllegalPlays) && (
+          {canPlay && !suppressPlayGhost && !showPendingPreview && (isLegal || allowIllegalPlays) && (
             <span
               className={`intersection__ghost intersection__ghost--${currentPlayer}`}
               aria-hidden="true"
             />
           )}
-          {isPending && (
+          {showPendingPreview && (
             <>
               <span
-                className={`intersection__ghost intersection__ghost--${currentPlayer} intersection__ghost--pending`}
+                className={`intersection__ghost intersection__ghost--${currentPlayer} intersection__ghost--preview`}
                 aria-hidden="true"
               />
-              <span className="intersection__pending-ring" aria-hidden="true" />
+              <span className="intersection__preview-ring" aria-hidden="true" />
             </>
           )}
           {!stone && candidateRank && (

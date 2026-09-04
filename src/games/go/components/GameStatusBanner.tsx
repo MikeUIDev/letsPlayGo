@@ -23,7 +23,11 @@ export function GameStatusBanner({
       {(onRetry || onDismiss) && (
         <div className="game-status-banner__actions">
           {onRetry ? (
-            <button type="button" className="game-status-banner__action" onClick={onRetry}>
+            <button
+              type="button"
+              className="control-button control-button--secondary game-status-banner__retry"
+              onClick={onRetry}
+            >
               {retryLabel}
             </button>
           ) : null}

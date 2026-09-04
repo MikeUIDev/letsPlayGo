@@ -77,7 +77,7 @@ function PlayerCard({
           <h2 className="player-card__name">{label}</h2>
           {aiSubtitle && <p className="player-card__subtitle">{aiSubtitle}</p>}
           <p
-            className={`player-card__status${showThinkingLabel ? ' player-card__status--ai-thinking' : ''}`}
+            className={`player-card__status${showThinkingLabel ? ' player-card__status--ai-thinking' : ''}${status === 'Your turn' ? ' player-card__status--your-turn' : ''}${status === 'Waiting' ? ' player-card__status--waiting' : ''}`}
             aria-live={showThinkingLabel ? 'polite' : undefined}
             aria-busy={showThinkingLabel ? true : undefined}
           >
@@ -93,37 +93,24 @@ function PlayerCard({
 
 function GameMeta({
   state,
-  showAiThinkingIndicator = false,
+  compact = false,
 }: {
   state: GameState;
-  showAiThinkingIndicator?: boolean;
+  compact?: boolean;
 }) {
   const moveNumber = state.history.length;
-  const aiColor = isAiGameConfig(state.config) ? getAiColor(state.config) : null;
-  const aiIsActive =
-    state.phase === 'playing' &&
-    aiColor !== null &&
-    state.currentPlayer === aiColor &&
-    showAiThinkingIndicator;
+
+  const showTurnLine = !compact && state.phase !== 'playing';
 
   const turnLabel =
-    state.phase === 'playing'
-      ? aiIsActive
-        ? 'AI is thinking…'
-        : `${state.currentPlayer === 'black' ? 'Black' : 'White'} to play`
-      : state.phase === 'scoring'
-        ? 'Scoring phase'
-        : 'Game ended';
+    state.phase === 'scoring'
+      ? 'Scoring phase'
+      : 'Game ended';
 
   return (
-    <div className="game-meta">
+    <div className={`game-meta${compact ? ' game-meta--compact' : ''}`}>
       <p className="game-meta__move">Move {moveNumber}</p>
-      <p
-        className={`game-meta__turn${aiIsActive ? ' game-meta__turn--ai-thinking' : ''}`}
-        aria-live={aiIsActive ? 'polite' : undefined}
-      >
-        {turnLabel}
-      </p>
+      {showTurnLine && <p className="game-meta__turn">{turnLabel}</p>}
       {state.result && (
         <p className="game-meta__result">
           {state.result.winner === 'draw'
@@ -167,7 +154,7 @@ export function PlayerPanel({
   if (layout === 'mobile-meta') {
     return (
       <section className="player-panel player-panel--mobile-meta" aria-label="Game status">
-        <GameMeta state={state} showAiThinkingIndicator={showAiThinkingIndicator} />
+        <GameMeta state={state} compact />
         {error && <p className="game-error" role="alert">{error}</p>}
       </section>
     );
@@ -183,7 +170,7 @@ export function PlayerPanel({
           aiStatus={aiStatus}
           showAiThinkingIndicator={showAiThinkingIndicator}
         />
-        <GameMeta state={state} showAiThinkingIndicator={showAiThinkingIndicator} />
+        <GameMeta state={state} />
         {error && <p className="game-error" role="alert">{error}</p>}
       </section>
     );
@@ -220,7 +207,7 @@ export function PlayerPanel({
         aiStatus={aiStatus}
         showAiThinkingIndicator={showAiThinkingIndicator}
       />
-      <GameMeta state={state} showAiThinkingIndicator={showAiThinkingIndicator} />
+      <GameMeta state={state} />
       {error && <p className="game-error" role="alert">{error}</p>}
     </section>
   );

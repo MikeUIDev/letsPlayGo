@@ -49,24 +49,26 @@ export function FinishedControls({
   className = '',
 }: FinishedControlsProps) {
   return (
-    <div className={`scoring-controls ${className}`.trim()}>
+    <div className={`scoring-controls scoring-controls--finished ${className}`.trim()}>
+      <div className="scoring-controls__secondary">
+        <button
+          type="button"
+          className="control-button control-button--secondary"
+          onClick={onEnterReview}
+        >
+          Review Board
+        </button>
+        <button
+          type="button"
+          className="control-button control-button--secondary"
+          onClick={onExportSgf}
+        >
+          Export SGF
+        </button>
+      </div>
       <button
         type="button"
-        className="control-button control-button--secondary"
-        onClick={onEnterReview}
-      >
-        Review Board
-      </button>
-      <button
-        type="button"
-        className="control-button control-button--secondary"
-        onClick={onExportSgf}
-      >
-        Export SGF
-      </button>
-      <button
-        type="button"
-        className="control-button control-button--primary"
+        className="control-button control-button--primary scoring-controls__primary"
         onClick={onNewGame}
       >
         New Game

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  aiBackOnlineRetryMessage,
   aiInvalidMoveMessage,
   aiOfflineMessage,
   aiRetryLimitMessage,
@@ -9,6 +10,7 @@ import {
 } from '../ai/errors';
 import type { GoAI, AIStatus, GenerateMoveResult } from '../ai/types';
 import { createAiRequestCoordinator } from '../ai/requestCoordinator';
+import { decideAiActionAfterReconnect } from '../ai/offlineRecovery';
 import { usesRemoteAiBackend } from '../api/config';
 import { isAiGameConfig, isAiTurn } from '../engine/gameConfig';
 import { dispatch, getMoveList } from '../engine/gameState';
@@ -26,6 +28,7 @@ export interface UseGoAIOptions {
 
 export interface UseGoAIResult {
   status: AIStatus;
+  canRetry: boolean;
   cancelPending: () => void;
   retry: () => void;
   resumeAfterBackground: () => void;
@@ -45,6 +48,7 @@ export function useGoAI({
 }: UseGoAIOptions): UseGoAIResult {
   const [status, setStatus] = useState<AIStatus>('idle');
   const [retryToken, setRetryToken] = useState(0);
+  const [canRetry, setCanRetry] = useState(true);
   const coordinatorRef = useRef(createAiRequestCoordinator());
   const stateRef = useRef(state);
   const abortRef = useRef<AbortController | null>(null);
@@ -66,6 +70,15 @@ export function useGoAI({
     setStatus('idle');
   }, []);
 
+  const retriggerAiTurn = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    coordinatorRef.current.cancel();
+    offlinePausedRef.current = false;
+    onError(null);
+    setRetryToken((token) => token + 1);
+  }, [onError]);
+
   const retry = useCallback(() => {
     const current = stateRef.current;
     if (!enabled || !current || current.phase !== 'playing' || !isAiGameConfig(current.config)) {
@@ -85,18 +98,14 @@ export function useGoAI({
 
     if (retryCountRef.current >= MAX_AI_RETRY_ATTEMPTS) {
       setStatus('error');
+      setCanRetry(false);
       onError(aiRetryLimitMessage());
       return;
     }
 
     retryCountRef.current += 1;
-    abortRef.current?.abort();
-    abortRef.current = null;
-    coordinatorRef.current.cancel();
-    offlinePausedRef.current = false;
-    onError(null);
-    setRetryToken((token) => token + 1);
-  }, [enabled, onError, usesRemoteAi]);
+    retriggerAiTurn();
+  }, [enabled, onError, retriggerAiTurn, usesRemoteAi]);
 
   const resumeAfterBackground = useCallback(() => {
     if (!isAppForeground()) {
@@ -110,8 +119,19 @@ export function useGoAI({
       return;
     }
 
-    retry();
-  }, [retry, usesRemoteAi, onError]);
+    const current = stateRef.current;
+    if (
+      !enabled ||
+      !current ||
+      current.phase !== 'playing' ||
+      !isAiGameConfig(current.config) ||
+      !isAiTurn(current.config, current.currentPlayer)
+    ) {
+      return;
+    }
+
+    retriggerAiTurn();
+  }, [enabled, onError, retriggerAiTurn, usesRemoteAi]);
 
   useEffect(() => {
     if (!usesRemoteAi) {
@@ -141,7 +161,21 @@ export function useGoAI({
       }
 
       if (offlinePausedRef.current) {
+        const decision = decideAiActionAfterReconnect({
+          offlinePaused: offlinePausedRef.current,
+          enabled,
+          state: stateRef.current,
+          status: statusRef.current,
+        });
+
         offlinePausedRef.current = false;
+
+        if (decision.promptRetry) {
+          setStatus('error');
+          onError(aiBackOnlineRetryMessage());
+          return;
+        }
+
         if (statusRef.current === 'error') {
           onError(null);
           setStatus('idle');
@@ -154,6 +188,8 @@ export function useGoAI({
     if (!enabled || !state || state.phase !== 'playing' || !isAiGameConfig(state.config)) {
       abortRef.current?.abort();
       abortRef.current = null;
+      retryCountRef.current = 0;
+      setCanRetry(true);
       setStatus('idle');
       return;
     }
@@ -161,6 +197,8 @@ export function useGoAI({
     if (!isAiTurn(state.config, state.currentPlayer)) {
       abortRef.current?.abort();
       abortRef.current = null;
+      retryCountRef.current = 0;
+      setCanRetry(true);
       setStatus('idle');
       return;
     }
@@ -233,6 +271,7 @@ export function useGoAI({
         }
 
         retryCountRef.current = 0;
+        setCanRetry(true);
         offlinePausedRef.current = false;
         onError(null);
         onStateChange(applied.state);
@@ -259,9 +298,10 @@ export function useGoAI({
 
     return () => {
       abortController.abort();
-      coordinator.complete();
+      // Bump generation so in-flight then/catch cannot apply after leave/retry/new game.
+      coordinator.cancel();
     };
   }, [ai, enabled, onError, onStateChange, retryToken, state, usesRemoteAi]);
 
-  return { status, cancelPending, retry, resumeAfterBackground };
+  return { status, canRetry, cancelPending, retry, resumeAfterBackground };
 }

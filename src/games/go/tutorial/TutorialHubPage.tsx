@@ -7,17 +7,20 @@ import './tutorial.css';
 export function TutorialHubPage() {
   const [progress, setProgress] = useState(() => loadTutorialProgress());
 
-  const resumeLesson = useMemo(() => {
+  const currentLessonId = useMemo(() => {
     if (!progress.lastLessonId) {
       return null;
     }
-    return BEGINNER_TUTORIAL_COURSE.lessons.find((lesson) => lesson.id === progress.lastLessonId) ?? null;
-  }, [progress.lastLessonId]);
+    if (progress.completedLessonIds.includes(progress.lastLessonId)) {
+      return null;
+    }
+    return progress.lastLessonId;
+  }, [progress.completedLessonIds, progress.lastLessonId]);
 
   return (
     <div className="tutorial-page" id="main-content" tabIndex={-1}>
       <div className="go-shell tutorial-page__inner">
-        <header className="tutorial-header">
+        <header className="tutorial-header tutorial-header--hub">
           <p className="tutorial-header__eyebrow">Interactive Tutorial</p>
           <h1 className="tutorial-header__title">Learn Go by playing</h1>
           <p className="tutorial-header__intro">
@@ -25,38 +28,39 @@ export function TutorialHubPage() {
           </p>
         </header>
 
-        {resumeLesson ? (
-          <div className="tutorial-resume">
-            <p>
-              Continue where you left off: <strong>{resumeLesson.title}</strong>
-            </p>
-            <Link to={`/learn/tutorial/${resumeLesson.id}`} className="tutorial-resume__link">
-              Resume lesson
-            </Link>
-          </div>
-        ) : null}
-
         <ol className="tutorial-lesson-list">
           {BEGINNER_TUTORIAL_COURSE.lessons.map((lesson) => {
             const completed = progress.completedLessonIds.includes(lesson.id);
+            const isCurrent = currentLessonId === lesson.id;
+            const href = `/learn/tutorial/${lesson.id}${completed ? '?replay=1' : ''}`;
+            const statusLabel = completed ? 'Completed' : isCurrent ? 'Continue' : null;
+
             return (
-              <li key={lesson.id} className="tutorial-lesson-list__item">
-                <div className="tutorial-lesson-list__meta">
-                  <span className="tutorial-lesson-list__order">{lesson.order}</span>
-                  <div>
-                    <h2 className="tutorial-lesson-list__title">{lesson.title}</h2>
-                    <p className="tutorial-lesson-list__summary">{lesson.summary}</p>
-                  </div>
-                </div>
-                <div className="tutorial-lesson-list__actions">
-                  {completed ? <span className="tutorial-lesson-list__badge">Completed</span> : null}
-                  <Link
-                    to={`/learn/tutorial/${lesson.id}${completed ? '?replay=1' : ''}`}
-                    className="tutorial-lesson-list__link"
+              <li key={lesson.id}>
+                <Link
+                  to={href}
+                  className={`tutorial-lesson-row${completed ? ' tutorial-lesson-row--completed' : ''}${isCurrent ? ' tutorial-lesson-row--current' : ''}`}
+                  aria-label={`${lesson.title}. ${completed ? 'Completed. Replay lesson.' : isCurrent ? 'Continue lesson.' : 'Start lesson.'}`}
+                >
+                  <span
+                    className={`tutorial-lesson-row__order${completed ? ' tutorial-lesson-row__order--done' : ''}`}
+                    aria-hidden="true"
                   >
-                    {completed ? 'Replay' : 'Start'}
-                  </Link>
-                </div>
+                    {completed ? '✓' : lesson.order}
+                  </span>
+                  <span className="tutorial-lesson-row__text">
+                    <span className="tutorial-lesson-row__title">{lesson.title}</span>
+                    <span className="tutorial-lesson-row__summary">{lesson.summary}</span>
+                  </span>
+                  <span className="tutorial-lesson-row__trailing">
+                    {statusLabel ? (
+                      <span className="tutorial-lesson-row__status">{statusLabel}</span>
+                    ) : null}
+                    <span className="tutorial-lesson-row__chevron" aria-hidden="true">
+                      ›
+                    </span>
+                  </span>
+                </Link>
               </li>
             );
           })}

@@ -65,7 +65,8 @@ export function shouldSkipSectionNavigation(
 export type AppSubnavConfig = {
   backLabel: string;
   backPath: string;
-  title: string;
+  /** Optional center label; omit when the primary nav already names the section. */
+  title?: string;
   backSection?: AppSectionId;
 };
 
@@ -75,7 +76,6 @@ export function getAppSubnav(pathname: string): AppSubnavConfig | null {
     return {
       backLabel: 'Tutorial',
       backPath: '/learn/tutorial',
-      title: 'Lesson',
     };
   }
 
@@ -83,16 +83,14 @@ export function getAppSubnav(pathname: string): AppSubnavConfig | null {
     return {
       backLabel: 'Learn',
       backPath: '/learn',
-      title: 'Tutorial',
       backSection: 'learn',
     };
   }
 
   if (pathname.startsWith('/practice/') && pathname !== '/practice') {
     return {
-      backLabel: 'All puzzles',
+      backLabel: 'All Puzzles',
       backPath: '/practice',
-      title: 'Puzzle',
       backSection: 'practice',
     };
   }
@@ -101,7 +99,6 @@ export function getAppSubnav(pathname: string): AppSubnavConfig | null {
     return {
       backLabel: 'Play',
       backPath: '/',
-      title: 'Learn',
       backSection: 'play',
     };
   }
@@ -110,16 +107,14 @@ export function getAppSubnav(pathname: string): AppSubnavConfig | null {
     return {
       backLabel: 'Play',
       backPath: '/',
-      title: 'Practice',
       backSection: 'play',
     };
   }
 
   if (pathname === SETTINGS_ROUTE) {
     return {
-      backLabel: 'Home',
+      backLabel: 'Play',
       backPath: '/',
-      title: 'Settings',
       backSection: 'play',
     };
   }

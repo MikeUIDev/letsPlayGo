@@ -8,7 +8,6 @@ type PuzzleControlsProps = {
   onRetry: () => void;
   onReset: () => void;
   onNext: () => void;
-  onExit: () => void;
 };
 
 export function PuzzleControls({
@@ -19,17 +18,16 @@ export function PuzzleControls({
   onRetry,
   onReset,
   onNext,
-  onExit,
 }: PuzzleControlsProps) {
   const runAction = useActionCooldown();
 
   return (
-    <div className="practice-controls practice-controls--sticky">
+    <div className="practice-controls">
       <div className="practice-controls__primary">
         {canNext ? (
           <button
             type="button"
-            className="practice-controls__button practice-controls__button--primary"
+            className="control-button control-button--primary practice-controls__button"
             onClick={() => runAction(onNext)}
           >
             Next Puzzle
@@ -38,7 +36,7 @@ export function PuzzleControls({
         {canRetry ? (
           <button
             type="button"
-            className="practice-controls__button"
+            className="control-button control-button--secondary practice-controls__button"
             onClick={() => runAction(onRetry)}
           >
             Retry
@@ -47,24 +45,21 @@ export function PuzzleControls({
         {canHint ? (
           <button
             type="button"
-            className="practice-controls__button"
+            className="control-button control-button--secondary practice-controls__button"
             aria-label="Show puzzle hint"
             onClick={() => runAction(onHint)}
           >
-            Show hint
+            Hint
           </button>
         ) : null}
-        <button type="button" className="practice-controls__button" onClick={() => runAction(onReset)}>
+        <button
+          type="button"
+          className="control-button control-button--secondary practice-controls__button"
+          onClick={() => runAction(onReset)}
+        >
           Reset
         </button>
       </div>
-      <button
-        type="button"
-        className="practice-controls__button practice-controls__button--ghost"
-        onClick={() => runAction(onExit)}
-      >
-        Back to Practice
-      </button>
     </div>
   );
 }

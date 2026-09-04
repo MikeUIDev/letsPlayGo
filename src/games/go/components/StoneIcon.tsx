@@ -21,7 +21,8 @@ interface LogoStoneProps {
 export function LogoStone({ className = '' }: LogoStoneProps) {
   return (
     <span className={`logo-stone ${className}`.trim()} aria-hidden="true">
-      <span className="logo-stone__disc" />
+      <span className="logo-stone__disc logo-stone__disc--black" />
+      <span className="logo-stone__disc logo-stone__disc--white" />
     </span>
   );
 }

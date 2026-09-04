@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { ApiGoAI, parseApiMoveResponse } from '../ai/ApiGoAI';
 import { ApiTransportError } from '../api/client';
-import { AiError, aiOfflineMessage, formatAiError } from '../ai/errors';
+import { AiError, aiOfflineMessage, aiTimeoutMessage, formatAiError } from '../ai/errors';
 import { serializeMoveRequest } from '../ai/serializeRequest';
 import { createGameFromSetup, dispatch } from '../engine/gameState';
 import { getMoveList } from '../engine/gameState';
@@ -84,7 +84,8 @@ describe('ApiGoAI', () => {
   it('returns a play move from the backend', async () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ move: { type: 'play', position: { x: 4, y: 4 } } }),
+      status: 200,
+      text: async () => JSON.stringify({ move: { type: 'play', position: { x: 4, y: 4 } } }),
     });
 
     const ai = new ApiGoAI({ baseUrl: '/api', fetchImpl, timeoutMs: 1_000 });
@@ -110,7 +111,7 @@ describe('ApiGoAI', () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: false,
       status: 503,
-      json: async () => ({ message: 'AI is unavailable right now.' }),
+      text: async () => JSON.stringify({ message: 'AI is unavailable right now.' }),
     });
 
     const ai = new ApiGoAI({ baseUrl: '/api', fetchImpl, timeoutMs: 1_000 });
@@ -149,7 +150,7 @@ describe('ApiGoAI', () => {
         moves: [],
         state,
       }),
-    ).rejects.toMatchObject({ message: 'The AI took too long to respond.' });
+    ).rejects.toMatchObject({ message: aiTimeoutMessage() });
   });
 
   it('aborts in-flight requests when the caller signal is aborted', async () => {
@@ -179,7 +180,51 @@ describe('ApiGoAI', () => {
 
     controller.abort();
 
-    await expect(pending).rejects.toMatchObject({ message: 'The AI took too long to respond.' });
+    await expect(pending).rejects.toMatchObject({ message: aiTimeoutMessage() });
+  });
+
+  it('maps non-JSON 5xx responses to unavailable, not malformed', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      text: async () => '<html>gateway error</html>',
+    });
+
+    const ai = new ApiGoAI({ baseUrl: '/api', fetchImpl, timeoutMs: 1_000 });
+    const state = createGameFromSetup(createAiSetup());
+
+    await expect(
+      ai.generateMove({
+        boardSize: 9,
+        komi: 6.5,
+        colorToMove: 'black',
+        difficulty: 'casual',
+        moves: [],
+        state,
+      }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+  });
+
+  it('maps 200 responses with invalid JSON to malformed', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => '{not-json',
+    });
+
+    const ai = new ApiGoAI({ baseUrl: '/api', fetchImpl, timeoutMs: 1_000 });
+    const state = createGameFromSetup(createAiSetup());
+
+    await expect(
+      ai.generateMove({
+        boardSize: 9,
+        komi: 6.5,
+        colorToMove: 'black',
+        difficulty: 'casual',
+        moves: [],
+        state,
+      }),
+    ).rejects.toMatchObject({ code: 'invalid_response' });
   });
 
   it('does not call the backend while offline', async () => {
@@ -205,11 +250,7 @@ describe('ApiGoAI', () => {
 
 describe('formatAiError', () => {
   it('returns friendly messages for known AI errors', () => {
-    expect(formatAiError(new AiError('timeout', 'The AI took too long to respond.'))).toBe(
-      'The AI took too long to respond.',
-    );
-    expect(formatAiError(new DOMException('Aborted', 'AbortError'))).toBe(
-      'The AI took too long to respond.',
-    );
+    expect(formatAiError(new AiError('timeout', aiTimeoutMessage()))).toBe(aiTimeoutMessage());
+    expect(formatAiError(new DOMException('Aborted', 'AbortError'))).toBe(aiTimeoutMessage());
   });
 });

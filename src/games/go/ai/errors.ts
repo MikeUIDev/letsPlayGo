@@ -27,6 +27,10 @@ export function formatAiError(error: unknown): string {
     return aiTimeoutMessage();
   }
 
+  if (error instanceof SyntaxError) {
+    return aiMalformedMessage();
+  }
+
   if (error instanceof TypeError) {
     return aiUnavailableMessage();
   }
@@ -35,7 +39,11 @@ export function formatAiError(error: unknown): string {
 }
 
 export function aiOfflineMessage(): string {
-  return "You're offline. AI moves pause until connection returns — tap Retry when back online.";
+  return "You're offline. AI is paused — tap Retry when you're back online.";
+}
+
+export function aiBackOnlineRetryMessage(): string {
+  return "You're back online. Tap Retry for the AI to move.";
 }
 
 export function aiRetryLimitMessage(): string {
@@ -47,17 +55,37 @@ export function isOfflineAiError(error: unknown): boolean {
 }
 
 export function isOfflineAiMessage(message: string | null): boolean {
-  return message === aiOfflineMessage();
+  return message === aiOfflineMessage() || message === aiBackOnlineRetryMessage();
+}
+
+export function isAiStatusMessage(message: string | null): boolean {
+  if (!message) {
+    return false;
+  }
+
+  return (
+    message === aiOfflineMessage() ||
+    message === aiBackOnlineRetryMessage() ||
+    message === aiTimeoutMessage() ||
+    message === aiUnavailableMessage() ||
+    message === aiMalformedMessage() ||
+    message === aiInvalidMoveMessage() ||
+    message === aiRetryLimitMessage()
+  );
 }
 
 export function aiInvalidMoveMessage(): string {
-  return 'The AI returned an invalid move.';
+  return 'The AI returned an invalid move. Tap Retry to try again.';
 }
 
 export function aiUnavailableMessage(): string {
-  return 'AI is unavailable right now.';
+  return 'AI server is unavailable. Tap Retry to try again.';
 }
 
 export function aiTimeoutMessage(): string {
-  return 'The AI took too long to respond.';
+  return 'The AI took too long to respond. Tap Retry to try again.';
+}
+
+export function aiMalformedMessage(): string {
+  return 'AI returned a bad response. Tap Retry to try again.';
 }

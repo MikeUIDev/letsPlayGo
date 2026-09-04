@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FinishedControls, ScoringControls } from './components/ScoringControls';
 import { GameConfirmSheet } from './components/GameConfirmSheet';
@@ -15,16 +15,23 @@ import { LiveCoachPanel } from './components/LiveCoachPanel';
 import { useCoordinatesPreference } from './hooks/useCoordinatesPreference';
 import { useGameConfirmations } from './hooks/useGameConfirmations';
 import { resolveShowCoordinates } from './coordinates';
-import { usesRemoteAiBackend } from './api/config';
-import { isOfflineAiMessage } from './ai/errors';
+import { isAiStatusMessage } from './ai/errors';
 import { LiveAnnouncer } from './accessibility/LiveAnnouncer';
 import { useGameAnnouncement } from './accessibility/useGameAnnouncement';
 import { useGoGameSession } from './context/GoGameSessionProvider';
 import { useGoLiveCoach } from './hooks/useGoLiveCoach';
 import { useGoReview } from './hooks/useGoReview';
-import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { getLastMovePosition } from './utils/lastMove';
 import './go.css';
+
+/** DEV-only; production builds replace this branch with null and drop the chunk. */
+const DevAiFailureToolbar = import.meta.env.DEV
+  ? lazy(() =>
+      import('./components/DevAiFailureToolbar').then((module) => ({
+        default: module.DevAiFailureToolbar,
+      })),
+    )
+  : null;
 
 export function GoGamePage() {
   const navigate = useNavigate();
@@ -64,10 +71,9 @@ export function GoGamePage() {
     exitReview,
     clearError,
     retryAi,
+    canRetryAi,
   } = useGoGameSession();
 
-  const { isOnline } = useNetworkStatus();
-  const usesRemoteAi = usesRemoteAiBackend();
   const gameAnnouncement = useGameAnnouncement(state, aiStatus, error);
 
   const confirmations = useGameConfirmations({
@@ -141,13 +147,14 @@ export function GoGamePage() {
       />
     ) : null;
 
+  const aiFailureBanner = Boolean(error && isAiStatusMessage(error));
   const statusBanner =
     error ? (
       <GameStatusBanner
         message={error}
-        variant={usesRemoteAi && !isOnline && isOfflineAiMessage(error) ? 'info' : 'error'}
-        onRetry={aiStatus === 'error' ? retryAi : undefined}
-        onDismiss={clearError}
+        variant={aiFailureBanner ? 'info' : 'error'}
+        onRetry={aiStatus === 'error' && canRetryAi ? retryAi : undefined}
+        onDismiss={aiFailureBanner ? undefined : clearError}
       />
     ) : null;
 
@@ -234,20 +241,12 @@ export function GoGamePage() {
         message={gameAnnouncement?.message ?? null}
         politeness={gameAnnouncement?.politeness ?? 'polite'}
       />
+      {DevAiFailureToolbar ? (
+        <Suspense fallback={null}>
+          <DevAiFailureToolbar />
+        </Suspense>
+      ) : null}
       <div className={`go-shell go-game__grid go-game__grid--${gridPhaseClass}`}>
-        {showPlayingSidebar && (
-          <section className="go-game__mobile-players">
-            <PlayerPanel
-              state={state}
-              error={null}
-              layout="mobile-players"
-              aiStatus={aiStatus}
-              showAiThinkingIndicator={showAiThinkingIndicator}
-            />
-            {statusBanner}
-          </section>
-        )}
-
         {(isScoring || (isEnded && !isReviewing)) && (
           <section className="go-game__mobile-scoring">
             {isScoring ? (
@@ -287,7 +286,7 @@ export function GoGamePage() {
           </div>
           <div className="go-game__board-footer">
             {showPlayingSidebar && (
-              <GameControls className="go-game__controls--desktop" {...gameControlsProps} />
+              <GameControls className="go-game__board-controls" {...gameControlsProps} />
             )}
             {isScoring && (
               <ScoringControls
@@ -299,7 +298,6 @@ export function GoGamePage() {
             )}
             {isEnded && !isReviewing && (
               <FinishedControls
-                className="go-game__controls--desktop"
                 onEnterReview={enterReview}
                 onNewGame={confirmations.requestNewGame}
                 onExportSgf={exportCurrentSgf}
@@ -307,6 +305,19 @@ export function GoGamePage() {
             )}
           </div>
         </section>
+
+        {showPlayingSidebar && (
+          <section className="go-game__mobile-players">
+            <PlayerPanel
+              state={state}
+              error={null}
+              layout="mobile-players"
+              aiStatus={aiStatus}
+              showAiThinkingIndicator={showAiThinkingIndicator}
+            />
+            {statusBanner}
+          </section>
+        )}
 
         <aside className="go-game__sidebar">
           {isReviewing && <ReviewPanel {...reviewPanelProps} />}
@@ -352,24 +363,16 @@ export function GoGamePage() {
               aiStatus={aiStatus}
               showAiThinkingIndicator={showAiThinkingIndicator}
             />
-            <MoveHistory moves={moves} boardSize={state.board.size} />
+            <MoveHistory moves={moves} boardSize={state.board.size} compactEmpty />
           </section>
         )}
 
         <section className="go-game__mobile-controls">
-          {showPlayingSidebar && <GameControls {...gameControlsProps} />}
           {isScoring && (
             <ScoringControls
               canResume={canResume}
               canConfirmScore={canConfirmScore}
               onAction={dispatchAction}
-            />
-          )}
-          {isEnded && !isReviewing && (
-            <FinishedControls
-              onEnterReview={enterReview}
-              onNewGame={confirmations.requestNewGame}
-              onExportSgf={exportCurrentSgf}
             />
           )}
         </section>

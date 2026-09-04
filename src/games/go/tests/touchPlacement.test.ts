@@ -9,16 +9,25 @@ const BOARD_RECT = { left: 100, top: 200, width: 360, height: 360 };
 
 describe('shouldUseTouchPlacement', () => {
   it('uses direct placement for 9×9', () => {
-    expect(shouldUseTouchPlacement(9)).toBe(false);
+    expect(shouldUseTouchPlacement(9, true, { coarsePointer: true })).toBe(false);
   });
 
-  it('uses confirm touch placement for 13×13 and 19×19', () => {
-    expect(shouldUseTouchPlacement(13)).toBe(true);
-    expect(shouldUseTouchPlacement(19)).toBe(true);
+  it('uses confirm touch placement for 13×13 and 19×19 on coarse pointers', () => {
+    expect(shouldUseTouchPlacement(13, true, { coarsePointer: true })).toBe(true);
+    expect(shouldUseTouchPlacement(19, true, { coarsePointer: true })).toBe(true);
+  });
+
+  it('keeps direct placement on 13×13 and 19×19 for mouse/trackpad', () => {
+    expect(shouldUseTouchPlacement(13, true, { coarsePointer: false })).toBe(false);
+    expect(shouldUseTouchPlacement(19, true, { coarsePointer: false })).toBe(false);
+  });
+
+  it('keeps direct placement when a device reports both coarse and fine pointers', () => {
+    expect(shouldUseTouchPlacement(19, true, { coarsePointer: false })).toBe(false);
   });
 
   it('can be disabled for static diagrams', () => {
-    expect(shouldUseTouchPlacement(19, false)).toBe(false);
+    expect(shouldUseTouchPlacement(19, false, { coarsePointer: true })).toBe(false);
   });
 });
 

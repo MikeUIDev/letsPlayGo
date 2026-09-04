@@ -55,8 +55,8 @@ body {
 .control-button:active:not(:disabled),
 .go-home__resume-card:active,
 .go-home__nav-button:active,
-.go-settings__option:active,
-.go-settings__toggle:active,
+.go-settings__row:active,
+.go-settings__choice:active,
 .more-menu__item:active:not(:disabled),
 .practice-controls__button:active:not(:disabled),
 .tutorial-controls__button:active:not(:disabled),
@@ -73,7 +73,7 @@ body {
 }
 
 .intersection--interactive:active:not([aria-disabled='true']) {
-  transform: scale(0.94);
+  transform: translate(-50%, -50%) scale(0.94);
 }
 
 /* Touch devices: avoid sticky hover after tap; keep desktop hover on fine pointers. */
@@ -162,12 +162,11 @@ body {
 }
 
 /* Settings options: subtle press without layout shift. */
-.go-settings__option,
-.go-settings__toggle {
+.go-settings__row,
+.go-settings__choice {
   transition:
     transform 80ms var(--ease-standard),
-    background-color var(--motion-fast) ease,
-    border-color var(--motion-fast) ease;
+    background-color var(--motion-fast) ease;
 }
 
 /* Practice / tutorial controls align with app buttons. */
@@ -198,12 +197,13 @@ body {
   }
 
   .intersection__ghost,
+  .intersection__preview-ring,
   .player-card,
   .control-button,
   .go-home__resume-card,
   .go-home__nav-button,
-  .go-settings__option,
-  .go-settings__toggle,
+  .go-settings__row,
+  .go-settings__choice,
   .more-menu__item,
   .practice-controls__button,
   .tutorial-controls__button,
@@ -216,8 +216,8 @@ body {
   .control-button:active:not(:disabled),
   .go-home__resume-card:active,
   .go-home__nav-button:active,
-  .go-settings__option:active,
-  .go-settings__toggle:active,
+  .go-settings__row:active,
+  .go-settings__choice:active,
   .more-menu__item:active:not(:disabled),
   .practice-controls__button:active:not(:disabled),
   .tutorial-controls__button:active:not(:disabled),
@@ -226,10 +226,5 @@ body {
   .app-subnav__back:active,
   .intersection--interactive:active:not([aria-disabled='true']) {
     transform: none;
-  }
-
-  .intersection-pending-pulse,
-  .intersection__pending-ring {
-    animation: none;
   }
 }

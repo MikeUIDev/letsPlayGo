@@ -103,27 +103,27 @@ function TutorialLessonRunner({
   return (
     <div className="tutorial-page tutorial-page--lesson" id="main-content" tabIndex={-1}>
       <div className="go-shell tutorial-page__inner">
-        <header className="tutorial-header">
-          <p className="tutorial-header__eyebrow">Tutorial</p>
-          <h1 className="tutorial-header__title">{lesson.title}</h1>
-          <p className="tutorial-header__intro">{lesson.summary}</p>
-          <div className="tutorial-progress-bar" aria-hidden="true">
-            <div
-              className="tutorial-progress-bar__fill"
-              style={{ width: `${((stepIndex + 1) / lesson.steps.length) * 100}%` }}
-            />
-          </div>
-          <p className="tutorial-progress-bar__label">
-            Step {stepIndex + 1} of {lesson.steps.length}
+        <header className="tutorial-header tutorial-header--lesson">
+          <p className="tutorial-header__eyebrow">
+            Lesson {lessonNumber} of {totalLessons}
           </p>
+          <h1 className="tutorial-header__title">{lesson.title}</h1>
+          <div className="tutorial-progress">
+            <p className="tutorial-progress__label">
+              Step {stepIndex + 1} of {lesson.steps.length}
+            </p>
+            <div className="tutorial-progress-bar" aria-hidden="true">
+              <div
+                className="tutorial-progress-bar__fill"
+                style={{ width: `${((stepIndex + 1) / lesson.steps.length) * 100}%` }}
+              />
+            </div>
+          </div>
         </header>
 
-        <div className="tutorial-layout">
+        <div className={`tutorial-layout${showBoard ? ' tutorial-layout--with-board' : ''}`}>
           <TutorialInstructionPanel
             step={currentStep}
-            lessonTitle={lesson.title}
-            lessonNumber={lessonNumber}
-            totalLessons={totalLessons}
             feedbackState={feedbackState}
             feedbackMessage={feedbackMessage}
             tipMessage={tipMessage}

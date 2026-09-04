@@ -1,30 +1,43 @@
-import { describe, expect, it, vi } from 'vitest';
-import { AiError } from '../ai/errors';
-import { formatAiError } from '../ai/errors';
+import { describe, expect, it } from 'vitest';
+import {
+  AiError,
+  aiMalformedMessage,
+  aiOfflineMessage,
+  aiTimeoutMessage,
+  aiUnavailableMessage,
+  formatAiError,
+  isAiStatusMessage,
+} from '../ai/errors';
 
 describe('AI error messages', () => {
   it('formats timeout errors for the status banner', () => {
-    const message = formatAiError(new AiError('timeout', 'The AI took too long to respond.'));
-    expect(message).toBe('The AI took too long to respond.');
+    expect(formatAiError(new AiError('timeout', aiTimeoutMessage()))).toBe(aiTimeoutMessage());
   });
 
   it('formats unavailable errors', () => {
-    const message = formatAiError(new AiError('unavailable', 'AI is unavailable right now.'));
-    expect(message).toBe('AI is unavailable right now.');
+    expect(formatAiError(new AiError('unavailable', aiUnavailableMessage()))).toBe(
+      aiUnavailableMessage(),
+    );
   });
 
   it('maps abort errors to timeout messaging', () => {
-    const message = formatAiError(new DOMException('Aborted', 'AbortError'));
-    expect(message).toBe('The AI took too long to respond.');
+    expect(formatAiError(new DOMException('Aborted', 'AbortError'))).toBe(aiTimeoutMessage());
   });
-});
 
-describe('AI retry guard', () => {
-  it('does not double-resolve pending AI callbacks', async () => {
-    const resolve = vi.fn();
-    const pending: Array<(value: { type: 'pass' }) => void> = [resolve];
-    pending.shift()?.({ type: 'pass' });
-    expect(resolve).toHaveBeenCalledTimes(1);
-    expect(pending.length).toBe(0);
+  it('maps syntax errors to malformed messaging', () => {
+    expect(formatAiError(new SyntaxError('Unexpected token'))).toBe(aiMalformedMessage());
+  });
+
+  it('distinguishes offline, timeout, unavailable, and malformed copy', () => {
+    expect(aiOfflineMessage()).toMatch(/offline/i);
+    expect(aiTimeoutMessage()).toMatch(/too long/i);
+    expect(aiUnavailableMessage()).toMatch(/unavailable/i);
+    expect(aiMalformedMessage()).toMatch(/bad response/i);
+
+    expect(isAiStatusMessage(aiOfflineMessage())).toBe(true);
+    expect(isAiStatusMessage(aiTimeoutMessage())).toBe(true);
+    expect(isAiStatusMessage(aiUnavailableMessage())).toBe(true);
+    expect(isAiStatusMessage(aiMalformedMessage())).toBe(true);
+    expect(isAiStatusMessage('Occupied intersection.')).toBe(false);
   });
 });

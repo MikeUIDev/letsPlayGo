@@ -54,11 +54,13 @@ export function getAiApiRuntimeConfig(): AiApiRuntimeConfig | null {
     console.warn(
       '[ai] VITE_AI_PROVIDER=api requires VITE_AI_API_BASE_URL for production builds (HTTPS remote API).',
     );
+    // Never fall back to relative `/api` in production — Capacitor would hit the app origin.
+    return null;
   }
 
   return {
     provider: 'api',
-    baseUrl: baseUrl || '/api',
+    baseUrl,
     timeoutMs: resolveAiApiTimeoutMs(),
   };
 }
@@ -67,7 +69,7 @@ export function getAiApiRuntimeConfig(): AiApiRuntimeConfig | null {
 export function getAnalysisApiRuntimeConfig(): Pick<AiApiRuntimeConfig, 'baseUrl' | 'timeoutMs'> {
   const baseUrl = resolveAiApiBaseUrl();
   return {
-    baseUrl: baseUrl || (import.meta.env.DEV ? '/api' : ''),
+    baseUrl,
     timeoutMs: resolveAiApiTimeoutMs(),
   };
 }
@@ -76,7 +78,7 @@ export function isProductionApiMisconfigured(): boolean {
   return getAiProvider() === 'api' && !import.meta.env.DEV && !resolveAiApiBaseUrl();
 }
 
-/** True when opponent moves require the remote HTTP AI backend. */
+/** True when opponent moves use the remote HTTP AI backend (configured base URL). */
 export function usesRemoteAiBackend(): boolean {
-  return getAiProvider() === 'api';
+  return getAiApiRuntimeConfig() !== null;
 }

@@ -5,6 +5,7 @@ import { StoneIcon } from './StoneIcon';
 interface MoveHistoryProps {
   moves: Move[];
   boardSize: BoardSize;
+  compactEmpty?: boolean;
 }
 
 function formatMoveDetail(move: Move, boardSize: BoardSize): string {
@@ -18,7 +19,15 @@ function formatMoveDetail(move: Move, boardSize: BoardSize): string {
   }
 }
 
-export function MoveHistory({ moves, boardSize }: MoveHistoryProps) {
+export function MoveHistory({ moves, boardSize, compactEmpty = false }: MoveHistoryProps) {
+  if (moves.length === 0 && compactEmpty) {
+    return (
+      <section className="move-history move-history--collapsed" aria-label="Move history">
+        <p className="move-history__empty-compact">No moves yet</p>
+      </section>
+    );
+  }
+
   const visibleMoves = [...moves].reverse();
 
   return (

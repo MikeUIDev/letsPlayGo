@@ -9,7 +9,6 @@ import { LearnMobileNav, LearnNav } from './components/LearnNav';
 import { LEARN_LANDING_CARDS } from './sections';
 import { useLearnSectionNavigation, useLearnSectionScrollOnHash } from './useLearnSectionScroll';
 import '../tutorial/tutorial.css';
-import '../practice/practice.css';
 import './learn.css';
 
 export function LearnPage() {
@@ -33,36 +32,42 @@ export function LearnPage() {
           </p>
         </header>
 
-        <Link to="/learn/tutorial" className="tutorial-start-card">
+        <Link to="/learn/tutorial" className="tutorial-start-card tutorial-start-card--recommended">
+          <span className="tutorial-start-card__eyebrow">Recommended for beginners</span>
           <h2 className="tutorial-start-card__title">Start Tutorial</h2>
           <p className="tutorial-start-card__description">
             Learn Go step by step with guided board lessons. Works offline — no AI backend required.
           </p>
         </Link>
 
-        <Link to="/practice" className="practice-start-card">
-          <h2 className="practice-start-card__title">Go Puzzles</h2>
-          <p className="practice-start-card__description">
-            Practice capture, Atari, ladders, and more with offline puzzle positions.
-          </p>
+        <Link to="/practice" className="learn-practice-crosslink">
+          Practice with Go Puzzles
+          <span className="learn-practice-crosslink__arrow" aria-hidden="true">
+            →
+          </span>
         </Link>
 
-        <div className="learn-landing">
+        <nav className="learn-landing" aria-label="Learn topics">
           {LEARN_LANDING_CARDS.map((card) => (
             <a
               key={card.id}
               href={`#${card.sectionId}`}
-              className="learn-card"
+              className="learn-topic-row"
               onClick={(event) => {
                 event.preventDefault();
                 goToSection(card.sectionId);
               }}
             >
-              <h2 className="learn-card__title">{card.title}</h2>
-              <p className="learn-card__description">{card.description}</p>
+              <span className="learn-topic-row__text">
+                <span className="learn-topic-row__title">{card.title}</span>
+                <span className="learn-topic-row__description">{card.description}</span>
+              </span>
+              <span className="learn-topic-row__chevron" aria-hidden="true">
+                ›
+              </span>
             </a>
           ))}
-        </div>
+        </nav>
 
         <LearnMobileNav />
 

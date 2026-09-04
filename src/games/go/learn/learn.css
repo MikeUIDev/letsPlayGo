@@ -20,7 +20,7 @@ html.learn-page-active {
 }
 
 .learn-hero {
-  padding: var(--space-6) 0 var(--space-5);
+  padding: var(--space-5) 0 var(--space-4);
 }
 
 .learn-hero__eyebrow {
@@ -45,13 +45,95 @@ html.learn-page-active {
   line-height: 1.65;
 }
 
-.learn-landing {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
+.learn-practice-crosslink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  margin: 0 0 var(--space-4);
+  padding: 0.35rem 0;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
+.learn-practice-crosslink:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 70%, white);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.learn-practice-crosslink__arrow {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.learn-landing {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.learn-topic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 2.75rem;
+  padding: 0.7rem var(--space-4);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  text-decoration: none;
+  color: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.learn-topic-row:last-child {
+  border-bottom: none;
+}
+
+.learn-topic-row:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 70%, white);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.learn-topic-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.learn-topic-row__title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.learn-topic-row__description {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.learn-topic-row__chevron {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  font-weight: 400;
+}
+
+/* Legacy card styles kept for any remaining references. */
 .learn-card {
   display: block;
   padding: var(--space-4);
@@ -383,15 +465,36 @@ html.learn-page-active {
     font-size: 1.45rem;
   }
 
-  .learn-landing {
-    grid-template-columns: 1fr;
+  .learn-topic-row {
+    padding-inline: var(--space-3);
+  }
+
+  .tutorial-start-card {
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-4);
   }
 }
 
 @media (max-width: 640px) {
   .learn-hero {
-    padding-top: var(--space-4);
-    padding-bottom: var(--space-4);
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
+  }
+
+  .learn-hero__intro {
+    margin-top: var(--space-2);
+  }
+
+  .learn-practice-crosslink {
+    margin-bottom: var(--space-3);
+  }
+
+  .learn-landing {
+    margin-bottom: var(--space-4);
+  }
+
+  .learn-topic-row {
+    padding-block: 0.65rem;
   }
 
   .learn-diagram__board {

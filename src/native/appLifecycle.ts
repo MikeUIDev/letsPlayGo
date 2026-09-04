@@ -50,11 +50,17 @@ function attachWebListeners(): void {
     notifyBackground();
   };
 
+  const onPageShow = () => {
+    notifyForeground();
+  };
+
   document.addEventListener('visibilitychange', onVisibilityChange);
   window.addEventListener('pagehide', onPageHide);
+  window.addEventListener('pageshow', onPageShow);
   removeWebListeners = () => {
     document.removeEventListener('visibilitychange', onVisibilityChange);
     window.removeEventListener('pagehide', onPageHide);
+    window.removeEventListener('pageshow', onPageShow);
   };
 }
 
@@ -147,6 +153,10 @@ export function simulateAppBackgroundForTests(): void {
 }
 
 export function simulateAppForegroundForTests(): void {
+  notifyForeground();
+}
+
+export function simulatePageShowForTests(): void {
   notifyForeground();
 }
 
